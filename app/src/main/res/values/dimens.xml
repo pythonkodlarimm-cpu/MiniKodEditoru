@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- Genel padding -->
+
+    <dimen name="padding_cok_kucuk">4dp</dimen>
+
+    <dimen name="padding_kucuk">8dp</dimen>
+
+    <dimen name="padding_normal">12dp</dimen>
+
+    <dimen name="padding_buyuk">16dp</dimen>
+
+    <dimen name="padding_cok_buyuk">24dp</dimen>
+
+    <!-- Radius -->
+
+    <dimen name="radius_kucuk">8dp</dimen>
+
+    <dimen name="radius_normal">14dp</dimen>
+
+    <dimen name="radius_buyuk">22dp</dimen>
+
+    <!-- Yazı boyutları -->
+
+    <dimen name="yazi_kucuk">12sp</dimen>
+
+    <dimen name="yazi_normal">14sp</dimen>
+
+    <dimen name="yazi_buyuk">18sp</dimen>
+
+    <dimen name="yazi_baslik">22sp</dimen>
+
+    <!-- Buton -->
+
+    <dimen name="buton_yukseklik">48dp</dimen>
+
+    <dimen name="ust_bar_yukseklik">64dp</dimen>
+
+    <!-- Kart -->
+
+    <dimen name="kart_padding">14dp</dimen>
+
+    <dimen name="kart_margin">10dp</dimen>
+
+    <!-- Editor -->
+
+    <dimen name="editor_padding">16dp</dimen>
+
+    <!-- Splash -->
+
+    <dimen name="splash_logo_boyut">120dp</dimen>
+
+</resources>
