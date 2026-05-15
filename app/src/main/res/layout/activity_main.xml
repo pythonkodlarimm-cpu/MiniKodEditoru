@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/kokAlan"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/arka_plan"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/ustBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/topbar_background"
+        android:elevation="6dp"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/ust_bar_yukseklik"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/padding_buyuk"
+        android:paddingTop="@dimen/padding_normal"
+        android:paddingEnd="@dimen/padding_buyuk"
+        android:paddingBottom="@dimen/padding_normal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/baslikMetni"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mini Kod Editörü"
+                android:textColor="@color/metin_beyaz"
+                android:textSize="@dimen/yazi_baslik"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/altBaslikMetni"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Java • Kotlin • XML"
+                android:textColor="@color/metin_pasif"
+                android:textSize="@dimen/yazi_kucuk" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/durumRozeti"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/status_badge_background"
+            android:paddingStart="@dimen/padding_normal"
+            android:paddingTop="@dimen/padding_kucuk"
+            android:paddingEnd="@dimen/padding_normal"
+            android:paddingBottom="@dimen/padding_kucuk"
+            android:text="Hazır"
+            android:textColor="@color/metin_beyaz"
+            android:textSize="@dimen/yazi_kucuk"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:id="@+id/yatayButonKaydirma"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/islemSatiri"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/padding_normal"
+            android:paddingTop="@dimen/padding_normal"
+            android:paddingEnd="@dimen/padding_normal"
+            android:paddingBottom="@dimen/padding_cok_kucuk">
+
+            <Button
+                android:id="@+id/yeniDosyaButonu"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/buton_yukseklik"
+                android:layout_marginEnd="@dimen/padding_kucuk"
+                android:background="@drawable/button_background"
+                android:minWidth="110dp"
+                android:text="Yeni"
+                android:textAllCaps="false"
+                android:textColor="@color/metin_beyaz" />
+
+            <Button
+                android:id="@+id/kaydetButonu"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/buton_yukseklik"
+                android:layout_marginEnd="@dimen/padding_kucuk"
+                android:background="@drawable/button_background"
+                android:minWidth="110dp"
+                android:text="Kaydet"
+                android:textAllCaps="false"
+                android:textColor="@color/metin_beyaz" />
+
+            <Button
+                android:id="@+id/xmlOnizlemeButonu"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/buton_yukseklik"
+                android:layout_marginEnd="@dimen/padding_kucuk"
+                android:background="@drawable/button_background"
+                android:minWidth="110dp"
+                android:text="Önizle"
+                android:textAllCaps="false"
+                android:textColor="@color/metin_beyaz" />
+
+            <Button
+                android:id="@+id/klasorButonu"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/buton_yukseklik"
+                android:background="@drawable/button_background"
+                android:minWidth="120dp"
+                android:text="Projeler"
+                android:textAllCaps="false"
+                android:textColor="@color/metin_beyaz" />
+
+        </LinearLayout>
+
+    </HorizontalScrollView>
+
+    <LinearLayout
+        android:id="@+id/anaIcerikAlani"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/padding_normal"
+        android:paddingTop="@dimen/padding_kucuk"
+        android:paddingEnd="@dimen/padding_normal"
+        android:paddingBottom="@dimen/padding_normal">
+
+        <TextView
+            android:id="@+id/dosyaYoluMetni"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/card_background"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:paddingStart="@dimen/padding_buyuk"
+            android:paddingTop="@dimen/padding_normal"
+            android:paddingEnd="@dimen/padding_buyuk"
+            android:paddingBottom="@dimen/padding_normal"
+            android:text="Dosya seçilmedi"
+            android:textColor="@color/metin_gri"
+            android:textSize="@dimen/yazi_kucuk" />
+
+        <LinearLayout
+            android:id="@+id/editorKart"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/kart_margin"
+            android:layout_weight="1.45"
+            android:background="@drawable/card_background"
+            android:elevation="4dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/editorBaslik"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/topbar_background"
+                android:paddingStart="@dimen/padding_buyuk"
+                android:paddingTop="@dimen/padding_normal"
+                android:paddingEnd="@dimen/padding_buyuk"
+                android:paddingBottom="@dimen/padding_normal"
+                android:text="Kod Editörü"
+                android:textColor="@color/metin_beyaz"
+                android:textSize="@dimen/yazi_normal"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/kodEditoru"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@drawable/input_background"
+                android:fontFamily="monospace"
+                android:gravity="top|start"
+                android:hint="Java, Kotlin veya XML kodunu yaz..."
+                android:inputType="textMultiLine|textNoSuggestions"
+                android:overScrollMode="always"
+                android:padding="@dimen/editor_padding"
+                android:scrollHorizontally="true"
+                android:scrollbars="vertical|horizontal"
+                android:textColor="@color/metin_gri"
+                android:textColorHint="@color/metin_pasif"
+                android:textCursorDrawable="@null"
+                android:textIsSelectable="true"
+                android:textSize="@dimen/yazi_normal" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/onizlemeKart"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/kart_margin"
+            android:layout_weight="0.85"
+            android:background="@drawable/card_background"
+            android:elevation="4dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/onizlemeBaslik"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/topbar_background"
+                android:paddingStart="@dimen/padding_buyuk"
+                android:paddingTop="@dimen/padding_normal"
+                android:paddingEnd="@dimen/padding_buyuk"
+                android:paddingBottom="@dimen/padding_normal"
+                android:text="XML Önizleme"
+                android:textColor="@color/metin_beyaz"
+                android:textSize="@dimen/yazi_normal"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/onizlemeAlani"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@drawable/preview_background"
+                android:padding="@dimen/padding_normal">
+
+                <TextView
+                    android:id="@+id/bosOnizlemeMetni"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="Önizleme burada görünecek"
+                    android:textColor="@color/metin_pasif"
+                    android:textSize="@dimen/yazi_normal" />
+
+            </FrameLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>
