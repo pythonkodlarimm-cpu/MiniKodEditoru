@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- Ana arka plan -->
+
+    <color name="arka_plan">#060913</color>
+
+    <color name="arka_plan_acik">#0F172A</color>
+
+    <color name="kart_arka_plan">#111827</color>
+
+    <color name="editor_arka_plan">#020617</color>
+
+    <!-- Metin -->
+
+    <color name="metin_beyaz">#F8FAFC</color>
+
+    <color name="metin_gri">#CBD5E1</color>
+
+    <color name="metin_pasif">#64748B</color>
+
+    <!-- Accent -->
+
+    <color name="mavi_vurgu">#60A5FA</color>
+
+    <color name="mavi_vurgu_koyu">#2563EB</color>
+
+    <!-- Durum -->
+
+    <color name="basari">#22C55E</color>
+
+    <color name="uyari">#F59E0B</color>
+
+    <color name="hata">#EF4444</color>
+
+    <!-- Sistem -->
+
+    <color name="status_bar">#00000000</color>
+
+    <color name="navigation_bar">#000000</color>
+
+    <!-- Splash -->
+
+    <color name="splash_baslangic">#0F172A</color>
+
+    <color name="splash_bitis">#020617</color>
+
+</resources>
