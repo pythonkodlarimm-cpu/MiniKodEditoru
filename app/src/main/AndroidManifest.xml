@@ -2,27 +2,72 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission
+        android:name="android.permission.INTERNET" />
+
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <queries>
+
+        <intent>
+            <action android:name="android.intent.action.OPEN_DOCUMENT" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.CREATE_DOCUMENT" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:mimeType="text/plain" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:mimeType="text/xml" />
+        </intent>
+
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:mimeType="application/xml" />
+        </intent>
+
+    </queries>
+
     <application
         android:allowBackup="true"
+        android:fullBackupContent="true"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher"
         android:label="Mini Kod Editörü"
         android:resizeableActivity="true"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:largeHeap="true"
-        android:theme="@style/Theme.KodEditoru">
+        android:theme="@style/Theme.KodEditoru"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".SplashActivity"
             android:exported="true"
             android:hardwareAccelerated="true"
+            android:launchMode="singleTask"
             android:screenOrientation="unspecified"
             android:theme="@style/Theme.KodEditoru.Splash">
 
             <intent-filter>
+
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
+
             </intent-filter>
 
         </activity>
@@ -30,12 +75,35 @@
         <activity
             android:name=".MainActivity"
             android:configChanges="density|fontScale|keyboard|keyboardHidden|layoutDirection|locale|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode"
-            android:exported="false"
+            android:documentLaunchMode="intoExisting"
+            android:exported="true"
             android:hardwareAccelerated="true"
             android:launchMode="singleTask"
             android:resizeableActivity="true"
             android:screenOrientation="unspecified"
-            android:windowSoftInputMode="adjustResize" />
+            android:stateNotNeeded="false"
+            android:windowSoftInputMode="adjustResize">
+
+            <intent-filter>
+
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="content" />
+                <data android:mimeType="text/plain" />
+
+                <data android:scheme="content" />
+                <data android:mimeType="text/xml" />
+
+                <data android:scheme="content" />
+                <data android:mimeType="application/xml" />
+
+            </intent-filter>
+
+        </activity>
 
     </application>
 
