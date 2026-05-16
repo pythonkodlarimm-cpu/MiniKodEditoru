@@ -7,16 +7,18 @@ import org.fy.kodeditoru.proje.DosyaModeli;
 import org.fy.kodeditoru.proje.ProjeModeli;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 /**
  * Merkezi proje dosya yönetim servisi.
  *
  * Bu sınıf:
  * - Android/data uygulama alanında proje klasörü oluşturur.
+ * - proje içinde klasör oluşturur.
  * - Java, XML ve Kotlin dosyaları üretir.
  * - proje modeline dosya ekler.
  * - dosya içeriği okur.
@@ -63,7 +65,7 @@ public final class ProjeDosyaServisi {
                         ProjeSabitleri.PROJELER_KLASORU
                 );
 
-        klasorOlustur(projelerKlasoru);
+        klasorOlusturZorunlu(projelerKlasoru);
     }
 
     /**
@@ -82,14 +84,16 @@ public final class ProjeDosyaServisi {
                         temizAd
                 );
 
-        klasorOlustur(projeKlasoru);
+        klasorOlusturZorunlu(projeKlasoru);
 
         ProjeModeli proje =
                 new ProjeModeli(
                         projeKlasoru
                 );
 
-        ornekDosyalariOlustur(proje);
+        if (proje.getDosyalar().isEmpty()) {
+            ornekDosyalariOlustur(proje);
+        }
 
         return proje;
     }
@@ -110,7 +114,7 @@ public final class ProjeDosyaServisi {
                         temizAd
                 );
 
-        klasorOlustur(projeKlasoru);
+        klasorOlusturZorunlu(projeKlasoru);
 
         ProjeModeli proje =
                 new ProjeModeli(
@@ -174,6 +178,38 @@ public final class ProjeDosyaServisi {
     }
 
     /**
+     * Proje içinde klasör oluşturur.
+     */
+    public File klasorOlustur(
+            ProjeModeli proje,
+            String goreliKlasorYolu
+    ) throws IOException {
+
+        if (proje == null) {
+            throw new IllegalArgumentException(
+                    "Proje modeli null olamaz."
+            );
+        }
+
+        String temizYol =
+                goreliYolTemizle(
+                        goreliKlasorYolu
+                );
+
+        File klasor =
+                new File(
+                        proje.getProjeKlasoru(),
+                        temizYol
+                );
+
+        klasorOlusturZorunlu(
+                klasor
+        );
+
+        return klasor;
+    }
+
+    /**
      * Dosya içeriğini kaydeder.
      */
     public void dosyaKaydet(
@@ -194,19 +230,23 @@ public final class ProjeDosyaServisi {
                 hedefDosya.getParentFile();
 
         if (ustKlasor != null) {
-            klasorOlustur(ustKlasor);
+            klasorOlusturZorunlu(
+                    ustKlasor
+            );
         }
 
         try (
-                FileWriter writer =
-                        new FileWriter(
-                                hedefDosya,
-                                false
+                BufferedWriter writer =
+                        Files.newBufferedWriter(
+                                hedefDosya.toPath(),
+                                StandardCharsets.UTF_8
                         )
         ) {
 
             writer.write(
-                    icerik == null ? "" : icerik
+                    icerik == null
+                            ? ""
+                            : icerik
             );
 
             writer.flush();
@@ -233,6 +273,10 @@ public final class ProjeDosyaServisi {
             return "";
         }
 
+        if (!hedefDosya.isFile()) {
+            return "";
+        }
+
         if (hedefDosya.length() > ProjeSabitleri.MAX_DOSYA_BOYUTU) {
             throw new IOException(
                     "Dosya boyutu izin verilen sınırı aşıyor."
@@ -244,10 +288,9 @@ public final class ProjeDosyaServisi {
 
         try (
                 BufferedReader reader =
-                        new BufferedReader(
-                                new FileReader(
-                                        hedefDosya
-                                )
+                        Files.newBufferedReader(
+                                hedefDosya.toPath(),
+                                StandardCharsets.UTF_8
                         )
         ) {
 
@@ -340,7 +383,9 @@ public final class ProjeDosyaServisi {
             );
         }
 
-        proje.dosyaEkle(model);
+        proje.dosyaEkle(
+                model
+        );
 
         return model;
     }
@@ -381,7 +426,7 @@ public final class ProjeDosyaServisi {
     /**
      * Klasör yoksa oluşturur.
      */
-    private void klasorOlustur(
+    private void klasorOlusturZorunlu(
             File klasor
     ) {
 
@@ -412,6 +457,48 @@ public final class ProjeDosyaServisi {
     }
 
     /**
+     * Göreli klasör yolunu güvenli hale getirir.
+     */
+    private String goreliYolTemizle(
+            String yol
+    ) {
+
+        if (yol == null || yol.trim().isEmpty()) {
+            return "YeniKlasor";
+        }
+
+        String[] parcalar =
+                yol.trim()
+                        .split("[/\\\\]+");
+
+        StringBuilder temiz =
+                new StringBuilder();
+
+        for (String parca : parcalar) {
+
+            String temizParca =
+                    parca.trim()
+                            .replaceAll("[^a-zA-Z0-9_\\-]", "_");
+
+            if (temizParca.isEmpty()) {
+                continue;
+            }
+
+            if (temiz.length() > 0) {
+                temiz.append(File.separator);
+            }
+
+            temiz.append(temizParca);
+        }
+
+        if (temiz.length() == 0) {
+            return "YeniKlasor";
+        }
+
+        return temiz.toString();
+    }
+
+    /**
      * Dosya adını güvenli hale getirir.
      */
     private String dosyaAdiTemizle(
@@ -420,7 +507,9 @@ public final class ProjeDosyaServisi {
     ) {
 
         String temizAd =
-                dosyaAdi == null ? "" : dosyaAdi.trim();
+                dosyaAdi == null
+                        ? ""
+                        : dosyaAdi.trim();
 
         if (temizAd.isEmpty()) {
 
@@ -434,7 +523,10 @@ public final class ProjeDosyaServisi {
         }
 
         temizAd =
-                temizAd.replaceAll("[/\\\\:*?\"<>|]", "_");
+                temizAd.replaceAll(
+                        "[/\\\\:*?\"<>|]",
+                        "_"
+                );
 
         if (DosyaModeli.TUR_XML.equals(tur)
                 && !temizAd.toLowerCase().endsWith(
@@ -443,7 +535,7 @@ public final class ProjeDosyaServisi {
 
             temizAd =
                     temizAd
-                    + ProjeSabitleri.XML_UZANTISI;
+                            + ProjeSabitleri.XML_UZANTISI;
         }
 
         if (DosyaModeli.TUR_JAVA.equals(tur)
@@ -453,7 +545,7 @@ public final class ProjeDosyaServisi {
 
             temizAd =
                     temizAd
-                    + ProjeSabitleri.JAVA_UZANTISI;
+                            + ProjeSabitleri.JAVA_UZANTISI;
         }
 
         if (DosyaModeli.TUR_KOTLIN.equals(tur)
@@ -463,7 +555,7 @@ public final class ProjeDosyaServisi {
 
             temizAd =
                     temizAd
-                    + ProjeSabitleri.KOTLIN_UZANTISI;
+                            + ProjeSabitleri.KOTLIN_UZANTISI;
         }
 
         return temizAd;
@@ -510,12 +602,14 @@ public final class ProjeDosyaServisi {
                 + "    android:padding=\"16dp\"\n"
                 + "    android:background=\"#101820\">\n\n"
                 + "    <TextView\n"
+                + "        android:id=\"@+id/baslikMetni\"\n"
                 + "        android:layout_width=\"wrap_content\"\n"
                 + "        android:layout_height=\"wrap_content\"\n"
                 + "        android:text=\"Mini Kod Editörü\"\n"
                 + "        android:textSize=\"24sp\"\n"
                 + "        android:textColor=\"#FFFFFF\" />\n\n"
                 + "    <Button\n"
+                + "        android:id=\"@+id/testButonu\"\n"
                 + "        android:layout_width=\"match_parent\"\n"
                 + "        android:layout_height=\"wrap_content\"\n"
                 + "        android:text=\"Buton Test\" />\n\n"
