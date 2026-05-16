@@ -2,6 +2,8 @@ package org.fy.kodeditoru.log;
 
 import android.content.Context;
 
+import org.fy.kodeditoru.core.ProjeSabitleri;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,17 +19,19 @@ import java.util.Locale;
  * - debug.log dosyasını yönetir.
  * - zaman damgalı kayıt üretir.
  * - güvenli log klasörü oluşturur.
+ * - log dosyası büyürse dosyayı sıfırlayıp yeni kayıt başlatır.
  *
  * Kural:
  * - UI üretmez.
  * - Toast göstermez.
- * - Thread yönetmez.
+ * - thread yönetmez.
  * - ağ işlemi yapmaz.
  * - reklam sistemi çalıştırmaz.
  */
 public final class LogYoneticisi {
 
-    private static final String LOG_DOSYA_ADI = "debug.log";
+    private static final long MAKSIMUM_LOG_BOYUTU =
+            512L * 1024L;
 
     private final File logDosyasi;
 
@@ -56,23 +60,19 @@ public final class LogYoneticisi {
         File logKlasoru =
                 new File(
                         anaKlasor,
-                        "loglar"
+                        ProjeSabitleri.LOG_KLASORU
                 );
 
-        if (!logKlasoru.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            logKlasoru.mkdirs();
-        }
+        klasorOlustur(logKlasoru);
 
         logDosyasi =
                 new File(
                         logKlasoru,
-                        LOG_DOSYA_ADI
+                        ProjeSabitleri.DEBUG_LOG_DOSYASI
                 );
 
-        logYaz(
-                "LOG BASLATILDI"
-        );
+        logYaz("LOG BASLATILDI");
+        logYaz("LOG_DOSYA=" + logDosyaYoluGetir());
     }
 
     /**
@@ -82,20 +82,12 @@ public final class LogYoneticisi {
             String mesaj
     ) {
 
-        if (mesaj == null) {
-            mesaj = "null";
-        }
-
-        String zaman =
-                new SimpleDateFormat(
-                        "HH:mm:ss",
-                        Locale.getDefault()
-                ).format(new Date());
+        logBoyutunuKontrolEt();
 
         String satir =
-                "[" + zaman + "] "
-                + mesaj
-                + "\n";
+                logSatiriOlustur(
+                        mesaj
+                );
 
         try (
                 FileWriter writer =
@@ -108,9 +100,9 @@ public final class LogYoneticisi {
             writer.append(satir);
             writer.flush();
 
-        } catch (IOException e) {
+        } catch (IOException hata) {
 
-            e.printStackTrace();
+            hata.printStackTrace();
         }
     }
 
@@ -121,4 +113,86 @@ public final class LogYoneticisi {
 
         return logDosyasi.getAbsolutePath();
     }
-                  }
+
+    /**
+     * Log dosyasını temizler.
+     */
+    public synchronized void logTemizle() {
+
+        try (
+                FileWriter writer =
+                        new FileWriter(
+                                logDosyasi,
+                                false
+                        )
+        ) {
+
+            writer.write("");
+            writer.flush();
+
+        } catch (IOException hata) {
+
+            hata.printStackTrace();
+        }
+    }
+
+    /**
+     * Log satırı oluşturur.
+     */
+    private String logSatiriOlustur(
+            String mesaj
+    ) {
+
+        String guvenliMesaj =
+                mesaj == null
+                        ? "null"
+                        : mesaj;
+
+        String zaman =
+                new SimpleDateFormat(
+                        "HH:mm:ss",
+                        Locale.getDefault()
+                ).format(
+                        new Date()
+                );
+
+        return "["
+                + zaman
+                + "] "
+                + guvenliMesaj
+                + "\n";
+    }
+
+    /**
+     * Log dosyası büyürse temizler.
+     */
+    private void logBoyutunuKontrolEt() {
+
+        if (!logDosyasi.exists()) {
+            return;
+        }
+
+        if (logDosyasi.length() < MAKSIMUM_LOG_BOYUTU) {
+            return;
+        }
+
+        logTemizle();
+    }
+
+    /**
+     * Klasör yoksa oluşturur.
+     */
+    private void klasorOlustur(
+            File klasor
+    ) {
+
+        if (klasor == null) {
+            return;
+        }
+
+        if (!klasor.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            klasor.mkdirs();
+        }
+    }
+            }
