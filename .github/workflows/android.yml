@@ -15,8 +15,10 @@ jobs:
       BUILD_NUMBER: ${{ github.run_number }}
       APP_VERSION: 0.1.${{ github.run_number }}
       APP_VERSION_CODE: ${{ github.run_number }}
+
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
       ANDROIDAPI: "35"
       ANDROIDMINAPI: "24"
 
@@ -36,7 +38,7 @@ jobs:
       - name: Secret mask uygula
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           echo "::add-mask::${{ secrets.ANDROID_KEYSTORE_BASE64 }}"
           echo "::add-mask::${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
           echo "::add-mask::${{ secrets.ANDROID_KEY_ALIAS }}"
@@ -59,7 +61,7 @@ jobs:
             ls -la
             echo ""
             echo "---- workflows ----"
-            find .github/workflows -maxdepth 2 -type f -print -exec sed -n '1,460p' {} \; || true
+            find .github/workflows -maxdepth 2 -type f -print -exec sed -n '1,520p' {} \; || true
             echo ""
             echo "---- settings.gradle ----"
             test -f settings.gradle && sed -n '1,220p' settings.gradle || true
@@ -71,10 +73,10 @@ jobs:
             test -f gradle.properties && sed -n '1,220p' gradle.properties || true
             echo ""
             echo "---- app/build.gradle ----"
-            test -f app/build.gradle && sed -n '1,460p' app/build.gradle || true
+            test -f app/build.gradle && sed -n '1,520p' app/build.gradle || true
             echo ""
             echo "---- AndroidManifest.xml ----"
-            test -f app/src/main/AndroidManifest.xml && sed -n '1,320p' app/src/main/AndroidManifest.xml || true
+            test -f app/src/main/AndroidManifest.xml && sed -n '1,360p' app/src/main/AndroidManifest.xml || true
             echo ""
             echo "---- java dosyalari ----"
             find app/src/main/java -type f | sort || true
@@ -154,13 +156,18 @@ jobs:
             kontrol_et gradle.properties
             kontrol_et build.gradle
             kontrol_et app/build.gradle
+            kontrol_et app/proguard-rules.pro
+
             kontrol_et app/src/main/AndroidManifest.xml
             kontrol_et app/src/main/java/org/fy/kodeditoru/MainActivity.java
             kontrol_et app/src/main/java/org/fy/kodeditoru/SplashActivity.java
+
             kontrol_et app/src/main/res/layout/activity_main.xml
+
             kontrol_et app/src/main/res/values/themes.xml
             kontrol_et app/src/main/res/values/colors.xml
             kontrol_et app/src/main/res/values/dimens.xml
+
             kontrol_et app/src/main/res/drawable/splash_background.xml
             kontrol_et app/src/main/res/drawable/card_background.xml
             kontrol_et app/src/main/res/drawable/button_background.xml
@@ -168,6 +175,7 @@ jobs:
             kontrol_et app/src/main/res/drawable/input_background.xml
             kontrol_et app/src/main/res/drawable/preview_background.xml
             kontrol_et app/src/main/res/drawable/status_badge_background.xml
+
             echo "Repo dosya kontrolü başarılı."
             find . -maxdepth 6 -type f | sort
           } 2>&1 | tee early_diagnostics/repo_dosya_kontrolu.txt
@@ -180,33 +188,51 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           mkdir -p secure
 
-          if [ -z "$KEYSTORE_BASE64" ]; then
+          if [ -z "${KEYSTORE_BASE64:-}" ]; then
             echo "HATA: ANDROID_KEYSTORE_BASE64 secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          if [ -z "$KEYSTORE_PASSWORD" ]; then
+          if [ -z "${KEYSTORE_PASSWORD:-}" ]; then
             echo "HATA: ANDROID_KEYSTORE_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          if [ -z "$KEY_ALIAS" ]; then
+          if [ -z "${KEY_ALIAS:-}" ]; then
             echo "HATA: ANDROID_KEY_ALIAS secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          if [ -z "$KEY_ALIAS_PASSWORD" ]; then
+          if [ -z "${KEY_ALIAS_PASSWORD:-}" ]; then
             echo "HATA: ANDROID_KEY_ALIAS_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          echo "$KEYSTORE_BASE64" | base64 -d > secure/release.keystore
+          printf '%s' "$KEYSTORE_BASE64" > secure/release.keystore.base64
+
+          if ! base64 --decode secure/release.keystore.base64 > secure/release.keystore 2> early_diagnostics/keystore_base64_decode_hatasi.txt; then
+            {
+              echo "HATA: ANDROID_KEYSTORE_BASE64 çözülemedi."
+              echo ""
+              echo "Muhtemel sebepler:"
+              echo "1. Secret eksik kopyalandı."
+              echo "2. Base64 çıktısı tek satır değil."
+              echo "3. Yanlış dosyanın base64 çıktısı girildi."
+              echo "4. Secret içine fazladan açıklama/boşluk/komut çıktısı karıştı."
+              echo ""
+              echo "Ubuntu doğru komut:"
+              echo "base64 -w 0 release.keystore"
+            } | tee early_diagnostics/keystore_hatasi.txt
+            exit 1
+          fi
+
+          rm -f secure/release.keystore.base64
 
           if [ ! -s secure/release.keystore ]; then
-            echo "HATA: release.keystore boş oluştu. Base64 secret bozuk olabilir." | tee early_diagnostics/keystore_hatasi.txt
+            echo "HATA: release.keystore boş oluştu. ANDROID_KEYSTORE_BASE64 bozuk olabilir." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
@@ -227,7 +253,7 @@ jobs:
       - name: Keystore doğrula
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
 
           if ! keytool -list \
             -keystore "$ANDROID_KEYSTORE_PATH" \
@@ -237,11 +263,12 @@ jobs:
             {
               echo ""
               echo "HATA: Keystore doğrulanamadı."
+              echo ""
               echo "Muhtemel sebepler:"
               echo "1. ANDROID_KEYSTORE_PASSWORD yanlış."
               echo "2. ANDROID_KEY_ALIAS yanlış."
-              echo "3. ANDROID_KEYSTORE_BASE64 yanlış dosyadan üretildi."
-              echo "4. Secret içine base64 eksik/bozuk yapıştırıldı."
+              echo "3. ANDROID_KEYSTORE_BASE64 yanlış keystore dosyasından üretildi."
+              echo "4. Secret içine base64 çıktısı eksik/bozuk yapıştırıldı."
               echo ""
               echo "Ubuntu base64 üretim:"
               echo "base64 -w 0 release.keystore"
@@ -292,12 +319,14 @@ jobs:
             {
               echo ""
               echo "HATA: :app:bundleRelease başarısız oldu."
+              echo ""
               echo "Muhtemel sebepler:"
               echo "1. Java compile hatası."
               echo "2. XML resource hatası."
               echo "3. AndroidManifest.xml hatası."
               echo "4. app/build.gradle signingConfig hatası."
               echo "5. drawable/color/dimen kaynak adı hatası."
+              echo "6. Eksik proguard-rules.pro dosyası."
               echo ""
               echo "Ayrıntı: build_aab.log"
             } | tee early_diagnostics/gradle_build_hatasi.txt
@@ -334,10 +363,11 @@ jobs:
             {
               echo ""
               echo "HATA: AAB imza doğrulaması başarısız."
+              echo ""
               echo "Muhtemel sebepler:"
               echo "1. signingConfig release doğru bağlanmadı."
               echo "2. Keystore bilgileri yanlış."
-              echo "3. AAB bozuk oluştu."
+              echo "3. AAB dosyası bozuk oluştu."
             } | tee early_diagnostics/aab_imza_hatasi.txt
             exit 1
           fi
@@ -431,6 +461,7 @@ jobs:
 
           logs = {
               "Keystore hatası": oku("early_diagnostics/keystore_hatasi.txt"),
+              "Keystore Base64 decode hatası": oku("early_diagnostics/keystore_base64_decode_hatasi.txt"),
               "Keystore doğrulama": oku("early_diagnostics/keystore_dogrulama.txt"),
               "Gradle build hatası": oku("early_diagnostics/gradle_build_hatasi.txt"),
               "AAB imza hatası": oku("early_diagnostics/aab_imza_hatasi.txt"),
@@ -460,6 +491,7 @@ jobs:
 
           output.extend(["", "## Kontrol edilecek dosyalar", "```text"])
           output.append("MiniKodEditoru/app/build.gradle")
+          output.append("MiniKodEditoru/app/proguard-rules.pro")
           output.append("MiniKodEditoru/.github/workflows/android.yml")
           output.append("GitHub Secrets:")
           output.append("- ANDROID_KEYSTORE_BASE64")
