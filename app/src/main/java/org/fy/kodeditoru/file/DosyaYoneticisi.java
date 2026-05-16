@@ -1,30 +1,33 @@
 package org.fy.kodeditoru.file;
 
+import org.fy.kodeditoru.core.ProjeSabitleri;
+
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 /**
  * Merkezi dosya yönetim modülü.
  *
  * Bu sınıf:
- * - dosya oluşturur
- * - klasör oluşturur
- * - dosya okur
- * - dosya yazar
- * - dosya siler
- * - klasör siler
- * - güvenli temel dosya işlemleri sağlar
+ * - dosya oluşturur.
+ * - klasör oluşturur.
+ * - dosya okur.
+ * - dosya yazar.
+ * - dosya siler.
+ * - klasör siler.
+ * - güvenli temel dosya işlemleri sağlar.
  *
  * Kural:
- * - UI üretmez
- * - Android Context taşımaz
- * - thread başlatmaz
- * - editör işlemi yapmaz
- * - syntax highlight işlemi yapmaz
- * - XML önizleme üretmez
+ * - UI üretmez.
+ * - Android Context taşımaz.
+ * - thread başlatmaz.
+ * - editör işlemi yapmaz.
+ * - syntax highlight işlemi yapmaz.
+ * - XML önizleme üretmez.
  */
 public final class DosyaYoneticisi {
 
@@ -32,8 +35,9 @@ public final class DosyaYoneticisi {
      * Constructor engeli.
      */
     private DosyaYoneticisi() {
+
         throw new IllegalStateException(
-                "Utility class olusturulamaz."
+                "Utility class oluşturulamaz."
         );
     }
 
@@ -44,17 +48,25 @@ public final class DosyaYoneticisi {
             String klasorYolu
     ) {
 
+        if (klasorYolu == null || klasorYolu.trim().isEmpty()) {
+            return false;
+        }
+
         try {
 
-            File klasor = new File(klasorYolu);
+            File klasor =
+                    new File(
+                            klasorYolu
+                    );
 
             if (klasor.exists()) {
-                return true;
+                return klasor.isDirectory();
             }
 
             return klasor.mkdirs();
 
-        } catch (Exception hata) {
+        } catch (SecurityException hata) {
+
             return false;
         }
     }
@@ -66,23 +78,33 @@ public final class DosyaYoneticisi {
             String dosyaYolu
     ) {
 
+        if (dosyaYolu == null || dosyaYolu.trim().isEmpty()) {
+            return false;
+        }
+
         try {
 
-            File dosya = new File(dosyaYolu);
+            File dosya =
+                    new File(
+                            dosyaYolu
+                    );
 
-            File parent = dosya.getParentFile();
+            File parent =
+                    dosya.getParentFile();
 
             if (parent != null && !parent.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 parent.mkdirs();
             }
 
             if (dosya.exists()) {
-                return true;
+                return dosya.isFile();
             }
 
             return dosya.createNewFile();
 
-        } catch (IOException hata) {
+        } catch (IOException | SecurityException hata) {
+
             return false;
         }
     }
@@ -95,42 +117,47 @@ public final class DosyaYoneticisi {
             String icerik
     ) {
 
-        FileWriter writer = null;
+        if (dosyaYolu == null || dosyaYolu.trim().isEmpty()) {
+            return false;
+        }
 
         try {
 
-            File dosya = new File(dosyaYolu);
+            File dosya =
+                    new File(
+                            dosyaYolu
+                    );
 
-            File parent = dosya.getParentFile();
+            File parent =
+                    dosya.getParentFile();
 
             if (parent != null && !parent.exists()) {
+                //noinspection ResultOfMethodCallIgnored
                 parent.mkdirs();
             }
 
-            writer = new FileWriter(
-                    dosya,
-                    false
-            );
+            try (
+                    BufferedWriter writer =
+                            Files.newBufferedWriter(
+                                    dosya.toPath(),
+                                    StandardCharsets.UTF_8
+                            )
+            ) {
 
-            writer.write(
-                    icerik == null ? "" : icerik
-            );
+                writer.write(
+                        icerik == null
+                                ? ""
+                                : icerik
+                );
 
-            writer.flush();
+                writer.flush();
+            }
 
             return true;
 
-        } catch (IOException hata) {
+        } catch (IOException | SecurityException hata) {
+
             return false;
-
-        } finally {
-
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (IOException ignored) {
-                }
-            }
         }
     }
 
@@ -141,41 +168,45 @@ public final class DosyaYoneticisi {
             String dosyaYolu
     ) {
 
-        File dosya = new File(dosyaYolu);
-
-        if (!dosya.exists()) {
+        if (dosyaYolu == null || dosyaYolu.trim().isEmpty()) {
             return "";
         }
 
-        StringBuilder builder = new StringBuilder();
+        File dosya =
+                new File(
+                        dosyaYolu
+                );
 
-        BufferedReader reader = null;
+        if (!dosya.exists() || !dosya.isFile()) {
+            return "";
+        }
 
-        try {
+        if (dosya.length() > ProjeSabitleri.MAX_DOSYA_BOYUTU) {
+            return "";
+        }
 
-            reader = new BufferedReader(
-                    new FileReader(dosya)
-            );
+        StringBuilder builder =
+                new StringBuilder();
+
+        try (
+                BufferedReader reader =
+                        Files.newBufferedReader(
+                                dosya.toPath(),
+                                StandardCharsets.UTF_8
+                        )
+        ) {
 
             String satir;
 
             while ((satir = reader.readLine()) != null) {
 
                 builder.append(satir);
-                builder.append("\n");
+                builder.append('\n');
             }
 
-        } catch (IOException hata) {
+        } catch (IOException | SecurityException hata) {
+
             return "";
-
-        } finally {
-
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException ignored) {
-                }
-            }
         }
 
         return builder.toString();
@@ -188,17 +219,25 @@ public final class DosyaYoneticisi {
             String dosyaYolu
     ) {
 
+        if (dosyaYolu == null || dosyaYolu.trim().isEmpty()) {
+            return false;
+        }
+
         try {
 
-            File dosya = new File(dosyaYolu);
+            File dosya =
+                    new File(
+                            dosyaYolu
+                    );
 
-            if (!dosya.exists()) {
+            if (!dosya.exists() || !dosya.isFile()) {
                 return false;
             }
 
             return dosya.delete();
 
-        } catch (Exception hata) {
+        } catch (SecurityException hata) {
+
             return false;
         }
     }
@@ -210,29 +249,92 @@ public final class DosyaYoneticisi {
             String klasorYolu
     ) {
 
+        if (klasorYolu == null || klasorYolu.trim().isEmpty()) {
+            return false;
+        }
+
         try {
 
-            File klasor = new File(klasorYolu);
+            File klasor =
+                    new File(
+                            klasorYolu
+                    );
 
-            return recursiveSil(klasor);
+            return recursiveSil(
+                    klasor
+            );
 
-        } catch (Exception hata) {
+        } catch (SecurityException hata) {
+
             return false;
         }
     }
 
     /**
-     * Dosya var mı kontrolü.
+     * Dosya var mı kontrolü yapar.
      */
     public static boolean dosyaVarMi(
             String dosyaYolu
     ) {
 
-        return new File(dosyaYolu).exists();
+        if (dosyaYolu == null || dosyaYolu.trim().isEmpty()) {
+            return false;
+        }
+
+        File dosya =
+                new File(
+                        dosyaYolu
+                );
+
+        return dosya.exists()
+                && dosya.isFile();
     }
 
     /**
-     * Recursive güvenli silme işlemi.
+     * Klasör var mı kontrolü yapar.
+     */
+    public static boolean klasorVarMi(
+            String klasorYolu
+    ) {
+
+        if (klasorYolu == null || klasorYolu.trim().isEmpty()) {
+            return false;
+        }
+
+        File klasor =
+                new File(
+                        klasorYolu
+                );
+
+        return klasor.exists()
+                && klasor.isDirectory();
+    }
+
+    /**
+     * Dosya boyutunu bayt olarak döndürür.
+     */
+    public static long dosyaBoyutu(
+            String dosyaYolu
+    ) {
+
+        if (dosyaYolu == null || dosyaYolu.trim().isEmpty()) {
+            return 0L;
+        }
+
+        File dosya =
+                new File(
+                        dosyaYolu
+                );
+
+        if (!dosya.exists() || !dosya.isFile()) {
+            return 0L;
+        }
+
+        return dosya.length();
+    }
+
+    /**
+     * Recursive güvenli silme işlemi yapar.
      */
     private static boolean recursiveSil(
             File file
@@ -244,7 +346,8 @@ public final class DosyaYoneticisi {
 
         if (file.isDirectory()) {
 
-            File[] children = file.listFiles();
+            File[] children =
+                    file.listFiles();
 
             if (children != null) {
 
@@ -256,4 +359,4 @@ public final class DosyaYoneticisi {
 
         return file.delete();
     }
-    }
+            }
