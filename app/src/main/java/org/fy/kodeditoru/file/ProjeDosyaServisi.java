@@ -9,21 +9,31 @@ import org.fy.kodeditoru.proje.ProjeModeli;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Merkezi proje dosya yönetim servisi.
  *
  * Bu sınıf:
- * - Android/data uygulama alanında proje klasörü oluşturur.
+ * - Android/data uygulama alanında proje klasörlerini yönetir.
+ * - proje listeler.
+ * - proje açar ve oluşturur.
  * - proje içinde klasör oluşturur.
- * - Java, XML ve Kotlin dosyaları üretir.
- * - proje modeline dosya ekler.
- * - dosya içeriği okur.
- * - dosya içeriği kaydeder.
- * - örnek başlangıç proje dosyaları oluşturur.
+ * - proje içinde dosya oluşturur.
+ * - dosya okur ve kaydeder.
+ * - dosya siler.
+ * - klasör siler.
+ * - dosya/klasör yeniden adlandırır.
+ * - dosya/klasör taşır.
+ * - ana XML dosyasını bulur.
+ * - Java dosyalarını runtime için birleştirir.
  *
  * Kural:
  * - UI üretmez.
@@ -34,6 +44,9 @@ import java.nio.file.Files;
  * - Activity yönetmez.
  */
 public final class ProjeDosyaServisi {
+
+    private static final String PROJELER_KLASORU_ADI = "projeler";
+    private static final String VARSAYILAN_KLASOR_ADI = "YeniKlasor";
 
     private final File projelerKlasoru;
 
@@ -62,10 +75,45 @@ public final class ProjeDosyaServisi {
         projelerKlasoru =
                 new File(
                         anaKlasor,
-                        ProjeSabitleri.PROJELER_KLASORU
+                        PROJELER_KLASORU_ADI
                 );
 
         klasorOlusturZorunlu(projelerKlasoru);
+    }
+
+    /**
+     * Tüm projeleri listeler.
+     */
+    public List<ProjeModeli> projeleriListele() {
+
+        List<ProjeModeli> sonuc =
+                new ArrayList<>();
+
+        File[] klasorler =
+                projelerKlasoru.listFiles();
+
+        if (klasorler == null) {
+            return sonuc;
+        }
+
+        for (File klasor : klasorler) {
+
+            if (!klasor.isDirectory()) {
+                continue;
+            }
+
+            ProjeModeli proje =
+                    new ProjeModeli(klasor);
+
+            dosyalariModeleYukle(
+                    proje,
+                    klasor
+            );
+
+            sonuc.add(proje);
+        }
+
+        return sonuc;
     }
 
     /**
@@ -87,9 +135,12 @@ public final class ProjeDosyaServisi {
         klasorOlusturZorunlu(projeKlasoru);
 
         ProjeModeli proje =
-                new ProjeModeli(
-                        projeKlasoru
-                );
+                new ProjeModeli(projeKlasoru);
+
+        dosyalariModeleYukle(
+                proje,
+                projeKlasoru
+        );
 
         if (proje.getDosyalar().isEmpty()) {
             ornekDosyalariOlustur(proje);
@@ -117,9 +168,7 @@ public final class ProjeDosyaServisi {
         klasorOlusturZorunlu(projeKlasoru);
 
         ProjeModeli proje =
-                new ProjeModeli(
-                        projeKlasoru
-                );
+                new ProjeModeli(projeKlasoru);
 
         dosyalariModeleYukle(
                 proje,
@@ -139,6 +188,7 @@ public final class ProjeDosyaServisi {
 
         return dosyaOlustur(
                 proje,
+                "",
                 dosyaAdi,
                 DosyaModeli.TUR_JAVA,
                 varsayilanJavaKodu()
@@ -155,6 +205,7 @@ public final class ProjeDosyaServisi {
 
         return dosyaOlustur(
                 proje,
+                "",
                 dosyaAdi,
                 DosyaModeli.TUR_XML,
                 varsayilanXmlKodu()
@@ -171,6 +222,61 @@ public final class ProjeDosyaServisi {
 
         return dosyaOlustur(
                 proje,
+                "",
+                dosyaAdi,
+                DosyaModeli.TUR_KOTLIN,
+                varsayilanKotlinKodu()
+        );
+    }
+
+    /**
+     * Hedef klasör içinde Java dosyası oluşturur.
+     */
+    public DosyaModeli javaDosyasiOlustur(
+            ProjeModeli proje,
+            String goreliKlasorYolu,
+            String dosyaAdi
+    ) throws IOException {
+
+        return dosyaOlustur(
+                proje,
+                goreliKlasorYolu,
+                dosyaAdi,
+                DosyaModeli.TUR_JAVA,
+                varsayilanJavaKodu()
+        );
+    }
+
+    /**
+     * Hedef klasör içinde XML dosyası oluşturur.
+     */
+    public DosyaModeli xmlDosyasiOlustur(
+            ProjeModeli proje,
+            String goreliKlasorYolu,
+            String dosyaAdi
+    ) throws IOException {
+
+        return dosyaOlustur(
+                proje,
+                goreliKlasorYolu,
+                dosyaAdi,
+                DosyaModeli.TUR_XML,
+                varsayilanXmlKodu()
+        );
+    }
+
+    /**
+     * Hedef klasör içinde Kotlin dosyası oluşturur.
+     */
+    public DosyaModeli kotlinDosyasiOlustur(
+            ProjeModeli proje,
+            String goreliKlasorYolu,
+            String dosyaAdi
+    ) throws IOException {
+
+        return dosyaOlustur(
+                proje,
+                goreliKlasorYolu,
                 dosyaAdi,
                 DosyaModeli.TUR_KOTLIN,
                 varsayilanKotlinKodu()
@@ -191,20 +297,13 @@ public final class ProjeDosyaServisi {
             );
         }
 
-        String temizYol =
-                goreliYolTemizle(
-                        goreliKlasorYolu
-                );
-
         File klasor =
                 new File(
                         proje.getProjeKlasoru(),
-                        temizYol
+                        goreliYolTemizle(goreliKlasorYolu)
                 );
 
-        klasorOlusturZorunlu(
-                klasor
-        );
+        klasorOlusturZorunlu(klasor);
 
         return klasor;
     }
@@ -230,23 +329,21 @@ public final class ProjeDosyaServisi {
                 hedefDosya.getParentFile();
 
         if (ustKlasor != null) {
-            klasorOlusturZorunlu(
-                    ustKlasor
-            );
+            klasorOlusturZorunlu(ustKlasor);
         }
 
         try (
                 BufferedWriter writer =
-                        Files.newBufferedWriter(
-                                hedefDosya.toPath(),
-                                StandardCharsets.UTF_8
+                        new BufferedWriter(
+                                new OutputStreamWriter(
+                                        new FileOutputStream(hedefDosya, false),
+                                        StandardCharsets.UTF_8
+                                )
                         )
         ) {
 
             writer.write(
-                    icerik == null
-                            ? ""
-                            : icerik
+                    icerik == null ? "" : icerik
             );
 
             writer.flush();
@@ -269,11 +366,7 @@ public final class ProjeDosyaServisi {
         File hedefDosya =
                 dosya.getDosya();
 
-        if (!hedefDosya.exists()) {
-            return "";
-        }
-
-        if (!hedefDosya.isFile()) {
+        if (!hedefDosya.exists() || !hedefDosya.isFile()) {
             return "";
         }
 
@@ -288,9 +381,11 @@ public final class ProjeDosyaServisi {
 
         try (
                 BufferedReader reader =
-                        Files.newBufferedReader(
-                                hedefDosya.toPath(),
-                                StandardCharsets.UTF_8
+                        new BufferedReader(
+                                new InputStreamReader(
+                                        new FileInputStream(hedefDosya),
+                                        StandardCharsets.UTF_8
+                                )
                         )
         ) {
 
@@ -303,6 +398,200 @@ public final class ProjeDosyaServisi {
         }
 
         return builder.toString();
+    }
+
+    /**
+     * Dosyayı siler.
+     */
+    public boolean dosyaSil(
+            DosyaModeli dosya
+    ) {
+
+        if (dosya == null) {
+            return false;
+        }
+
+        File hedef =
+                dosya.getDosya();
+
+        return hedef.exists()
+                && hedef.isFile()
+                && hedef.delete();
+    }
+
+    /**
+     * Klasörü recursive siler.
+     */
+    public boolean klasorSil(
+            File klasor
+    ) {
+
+        return recursiveSil(klasor);
+    }
+
+    /**
+     * Dosya veya klasör adını değiştirir.
+     */
+    public File yenidenAdlandir(
+            File hedef,
+            String yeniAd
+    ) throws IOException {
+
+        if (hedef == null || !hedef.exists()) {
+            throw new IOException(
+                    "Yeniden adlandırılacak hedef bulunamadı."
+            );
+        }
+
+        String temizAd =
+                dosyaKlasorAdiTemizle(yeniAd);
+
+        File yeniHedef =
+                new File(
+                        hedef.getParentFile(),
+                        temizAd
+                );
+
+        if (yeniHedef.exists()) {
+            throw new IOException(
+                    "Aynı isimde dosya veya klasör zaten var."
+            );
+        }
+
+        boolean basarili =
+                hedef.renameTo(yeniHedef);
+
+        if (!basarili) {
+            throw new IOException(
+                    "Yeniden adlandırma işlemi başarısız oldu."
+            );
+        }
+
+        return yeniHedef;
+    }
+
+    /**
+     * Dosya veya klasörü hedef klasöre taşır.
+     */
+    public File tasi(
+            File kaynak,
+            File hedefKlasor
+    ) throws IOException {
+
+        if (kaynak == null || !kaynak.exists()) {
+            throw new IOException(
+                    "Taşınacak hedef bulunamadı."
+            );
+        }
+
+        if (hedefKlasor == null) {
+            throw new IOException(
+                    "Hedef klasör null olamaz."
+            );
+        }
+
+        klasorOlusturZorunlu(hedefKlasor);
+
+        File hedef =
+                new File(
+                        hedefKlasor,
+                        kaynak.getName()
+                );
+
+        if (hedef.exists()) {
+            throw new IOException(
+                    "Hedef klasörde aynı isimde öğe var."
+            );
+        }
+
+        boolean basarili =
+                kaynak.renameTo(hedef);
+
+        if (!basarili) {
+            throw new IOException(
+                    "Taşıma işlemi başarısız oldu."
+            );
+        }
+
+        return hedef;
+    }
+
+    /**
+     * Projenin ana XML dosyasını bulur.
+     */
+    public DosyaModeli anaXmlDosyasiBul(
+            ProjeModeli proje
+    ) {
+
+        if (proje == null) {
+            return null;
+        }
+
+        for (DosyaModeli dosya : proje.xmlDosyalari()) {
+
+            if (ProjeSabitleri.VARSAYILAN_XML_DOSYASI.equalsIgnoreCase(
+                    dosya.getAd()
+            )) {
+                return dosya;
+            }
+        }
+
+        List<DosyaModeli> xmlDosyalari =
+                proje.xmlDosyalari();
+
+        if (xmlDosyalari.isEmpty()) {
+            return null;
+        }
+
+        return xmlDosyalari.get(0);
+    }
+
+    /**
+     * Projedeki Java dosyalarının içeriklerini birleştirir.
+     */
+    public String javaIcerikleriniBirlesir(
+            ProjeModeli proje
+    ) {
+
+        if (proje == null) {
+            return "";
+        }
+
+        StringBuilder builder =
+                new StringBuilder();
+
+        for (DosyaModeli dosya : proje.javaDosyalari()) {
+
+            try {
+                builder.append(dosyaOku(dosya));
+                builder.append('\n');
+            } catch (IOException ignored) {
+            }
+        }
+
+        return builder.toString();
+    }
+
+    /**
+     * Projedeki klasörleri listeler.
+     */
+    public List<File> klasorleriListele(
+            ProjeModeli proje
+    ) {
+
+        List<File> sonuc =
+                new ArrayList<>();
+
+        if (proje == null) {
+            return sonuc;
+        }
+
+        klasorleriTopla(
+                proje.getProjeKlasoru(),
+                sonuc
+        );
+
+        return sonuc;
     }
 
     /**
@@ -319,26 +608,14 @@ public final class ProjeDosyaServisi {
             ProjeModeli proje
     ) throws IOException {
 
-        DosyaModeli javaDosya =
-                javaDosyasiOlustur(
-                        proje,
-                        ProjeSabitleri.VARSAYILAN_JAVA_DOSYASI
-                );
-
-        dosyaKaydet(
-                javaDosya,
-                varsayilanJavaKodu()
+        javaDosyasiOlustur(
+                proje,
+                ProjeSabitleri.VARSAYILAN_JAVA_DOSYASI
         );
 
-        DosyaModeli xmlDosya =
-                xmlDosyasiOlustur(
-                        proje,
-                        ProjeSabitleri.VARSAYILAN_XML_DOSYASI
-                );
-
-        dosyaKaydet(
-                xmlDosya,
-                varsayilanXmlKodu()
+        xmlDosyasiOlustur(
+                proje,
+                ProjeSabitleri.VARSAYILAN_XML_DOSYASI
         );
     }
 
@@ -347,6 +624,7 @@ public final class ProjeDosyaServisi {
      */
     private DosyaModeli dosyaOlustur(
             ProjeModeli proje,
+            String goreliKlasorYolu,
             String dosyaAdi,
             String tur,
             String varsayilanIcerik
@@ -358,6 +636,21 @@ public final class ProjeDosyaServisi {
             );
         }
 
+        File hedefKlasor =
+                proje.getProjeKlasoru();
+
+        if (goreliKlasorYolu != null
+                && !goreliKlasorYolu.trim().isEmpty()) {
+
+            hedefKlasor =
+                    new File(
+                            proje.getProjeKlasoru(),
+                            goreliYolTemizle(goreliKlasorYolu)
+                    );
+        }
+
+        klasorOlusturZorunlu(hedefKlasor);
+
         String temizDosyaAdi =
                 dosyaAdiTemizle(
                         dosyaAdi,
@@ -366,7 +659,7 @@ public final class ProjeDosyaServisi {
 
         File dosya =
                 new File(
-                        proje.getProjeKlasoru(),
+                        hedefKlasor,
                         temizDosyaAdi
                 );
 
@@ -383,9 +676,7 @@ public final class ProjeDosyaServisi {
             );
         }
 
-        proje.dosyaEkle(
-                model
-        );
+        proje.dosyaEkle(model);
 
         return model;
     }
@@ -408,18 +699,42 @@ public final class ProjeDosyaServisi {
         for (File dosya : dosyalar) {
 
             if (dosya.isDirectory()) {
-                dosyalariModeleYukle(
-                        proje,
-                        dosya
-                );
+                dosyalariModeleYukle(proje, dosya);
                 continue;
             }
 
             proje.dosyaEkle(
-                    new DosyaModeli(
-                            dosya
-                    )
+                    new DosyaModeli(dosya)
             );
+        }
+    }
+
+    /**
+     * Klasörleri recursive toplar.
+     */
+    private void klasorleriTopla(
+            File kok,
+            List<File> sonuc
+    ) {
+
+        if (kok == null || !kok.exists() || !kok.isDirectory()) {
+            return;
+        }
+
+        sonuc.add(kok);
+
+        File[] altOgeler =
+                kok.listFiles();
+
+        if (altOgeler == null) {
+            return;
+        }
+
+        for (File oge : altOgeler) {
+
+            if (oge.isDirectory()) {
+                klasorleriTopla(oge, sonuc);
+            }
         }
     }
 
@@ -441,6 +756,33 @@ public final class ProjeDosyaServisi {
     }
 
     /**
+     * Recursive silme yapar.
+     */
+    private boolean recursiveSil(
+            File hedef
+    ) {
+
+        if (hedef == null || !hedef.exists()) {
+            return false;
+        }
+
+        if (hedef.isDirectory()) {
+
+            File[] altOgeler =
+                    hedef.listFiles();
+
+            if (altOgeler != null) {
+
+                for (File altOge : altOgeler) {
+                    recursiveSil(altOge);
+                }
+            }
+        }
+
+        return hedef.delete();
+    }
+
+    /**
      * Proje adını güvenli hale getirir.
      */
     private String projeAdiTemizle(
@@ -451,9 +793,7 @@ public final class ProjeDosyaServisi {
             return ProjeSabitleri.VARSAYILAN_PROJE_ADI;
         }
 
-        return projeAdi
-                .trim()
-                .replaceAll("[^a-zA-Z0-9_\\-]", "_");
+        return dosyaKlasorAdiTemizle(projeAdi);
     }
 
     /**
@@ -464,12 +804,11 @@ public final class ProjeDosyaServisi {
     ) {
 
         if (yol == null || yol.trim().isEmpty()) {
-            return "YeniKlasor";
+            return VARSAYILAN_KLASOR_ADI;
         }
 
         String[] parcalar =
-                yol.trim()
-                        .split("[/\\\\]+");
+                yol.trim().split("[/\\\\]+");
 
         StringBuilder temiz =
                 new StringBuilder();
@@ -477,8 +816,7 @@ public final class ProjeDosyaServisi {
         for (String parca : parcalar) {
 
             String temizParca =
-                    parca.trim()
-                            .replaceAll("[^a-zA-Z0-9_\\-]", "_");
+                    dosyaKlasorAdiTemizle(parca);
 
             if (temizParca.isEmpty()) {
                 continue;
@@ -492,7 +830,7 @@ public final class ProjeDosyaServisi {
         }
 
         if (temiz.length() == 0) {
-            return "YeniKlasor";
+            return VARSAYILAN_KLASOR_ADI;
         }
 
         return temiz.toString();
@@ -532,33 +870,39 @@ public final class ProjeDosyaServisi {
                 && !temizAd.toLowerCase().endsWith(
                         ProjeSabitleri.XML_UZANTISI
                 )) {
-
-            temizAd =
-                    temizAd
-                            + ProjeSabitleri.XML_UZANTISI;
+            temizAd = temizAd + ProjeSabitleri.XML_UZANTISI;
         }
 
         if (DosyaModeli.TUR_JAVA.equals(tur)
                 && !temizAd.toLowerCase().endsWith(
                         ProjeSabitleri.JAVA_UZANTISI
                 )) {
-
-            temizAd =
-                    temizAd
-                            + ProjeSabitleri.JAVA_UZANTISI;
+            temizAd = temizAd + ProjeSabitleri.JAVA_UZANTISI;
         }
 
         if (DosyaModeli.TUR_KOTLIN.equals(tur)
                 && !temizAd.toLowerCase().endsWith(
                         ProjeSabitleri.KOTLIN_UZANTISI
                 )) {
-
-            temizAd =
-                    temizAd
-                            + ProjeSabitleri.KOTLIN_UZANTISI;
+            temizAd = temizAd + ProjeSabitleri.KOTLIN_UZANTISI;
         }
 
         return temizAd;
+    }
+
+    /**
+     * Dosya/klasör adını güvenli hale getirir.
+     */
+    private String dosyaKlasorAdiTemizle(
+            String ad
+    ) {
+
+        if (ad == null || ad.trim().isEmpty()) {
+            return "";
+        }
+
+        return ad.trim()
+                .replaceAll("[^a-zA-Z0-9_\\-.]", "_");
     }
 
     /**
@@ -615,4 +959,4 @@ public final class ProjeDosyaServisi {
                 + "        android:text=\"Buton Test\" />\n\n"
                 + "</LinearLayout>\n";
     }
-    }
+            }
