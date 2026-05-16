@@ -24,19 +24,16 @@
 
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:mimeType="text/plain" />
         </intent>
 
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:mimeType="text/xml" />
         </intent>
 
         <intent>
             <action android:name="android.intent.action.VIEW" />
-
             <data android:mimeType="application/xml" />
         </intent>
 
@@ -104,6 +101,16 @@
             </intent-filter>
 
         </activity>
+
+        <activity
+            android:name=".runtime.RuntimeEkranActivity"
+            android:configChanges="density|fontScale|keyboard|keyboardHidden|layoutDirection|locale|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:resizeableActivity="true"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.KodEditoru"
+            android:windowSoftInputMode="adjustResize" />
 
     </application>
 
