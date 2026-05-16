@@ -19,6 +19,23 @@ android {
         versionName "0.1.0"
     }
 
+    signingConfigs {
+
+        release {
+
+            storeFile file(
+                    System.getenv("ANDROID_KEYSTORE_PATH")
+                            ?: "${rootProject.projectDir}/release.keystore"
+            )
+
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+
+            keyAlias System.getenv("ANDROID_KEY_ALIAS")
+
+            keyPassword System.getenv("ANDROID_KEY_ALIAS_PASSWORD")
+        }
+    }
+
     buildTypes {
 
         debug {
@@ -31,6 +48,8 @@ android {
 
             debuggable false
             minifyEnabled false
+
+            signingConfig signingConfigs.release
 
             proguardFiles(
                     getDefaultProguardFile(
