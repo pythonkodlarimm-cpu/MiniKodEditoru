@@ -15,10 +15,8 @@ jobs:
       BUILD_NUMBER: ${{ github.run_number }}
       APP_VERSION: 0.1.${{ github.run_number }}
       APP_VERSION_CODE: ${{ github.run_number }}
-
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
       ANDROIDAPI: "35"
       ANDROIDMINAPI: "24"
 
@@ -49,7 +47,6 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p early_diagnostics
-
           {
             echo "PWD=$(pwd)"
             echo "GITHUB_REF=${GITHUB_REF}"
@@ -90,10 +87,9 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          echo "[LOG] Cache temizleme basladi." | tee early_diagnostics/cache_temizleme.txt
           rm -rf .gradle app/build build dist_artifacts play_console_upload secure
           rm -rf ~/.gradle/caches ~/.gradle/daemon ~/.gradle/native
-          echo "[LOG] Cache temizleme tamamlandi." | tee -a early_diagnostics/cache_temizleme.txt
+          echo "Cache temizlendi." | tee early_diagnostics/cache_temizleme.txt
 
       - name: Android SDK ortamını kontrol et
         shell: bash
@@ -172,52 +168,54 @@ jobs:
             kontrol_et app/src/main/res/drawable/input_background.xml
             kontrol_et app/src/main/res/drawable/preview_background.xml
             kontrol_et app/src/main/res/drawable/status_badge_background.xml
-
             echo "Repo dosya kontrolü başarılı."
             find . -maxdepth 6 -type f | sort
           } 2>&1 | tee early_diagnostics/repo_dosya_kontrolu.txt
 
       - name: Release keystore oluştur
         shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_ALIAS_PASSWORD: ${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}
         run: |
           set -euxo pipefail
           mkdir -p secure
 
-          if [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+          if [ -z "$KEYSTORE_BASE64" ]; then
             echo "HATA: ANDROID_KEYSTORE_BASE64 secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          if [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ]; then
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
             echo "HATA: ANDROID_KEYSTORE_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          if [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ]; then
+          if [ -z "$KEY_ALIAS" ]; then
             echo "HATA: ANDROID_KEY_ALIAS secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          if [ -z "${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}" ]; then
+          if [ -z "$KEY_ALIAS_PASSWORD" ]; then
             echo "HATA: ANDROID_KEY_ALIAS_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
-          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" \
-            | tr -d '\n\r ' \
-            | base64 --decode > secure/release.keystore
+          echo "$KEYSTORE_BASE64" | base64 -d > secure/release.keystore
 
           if [ ! -s secure/release.keystore ]; then
-            echo "HATA: release.keystore oluşturuldu ama dosya boş. ANDROID_KEYSTORE_BASE64 bozuk olabilir." | tee early_diagnostics/keystore_hatasi.txt
+            echo "HATA: release.keystore boş oluştu. Base64 secret bozuk olabilir." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
           chmod 600 secure/release.keystore
 
           echo "ANDROID_KEYSTORE_PATH=${GITHUB_WORKSPACE}/secure/release.keystore" >> "$GITHUB_ENV"
-          echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> "$GITHUB_ENV"
-          echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> "$GITHUB_ENV"
-          echo "ANDROID_KEY_ALIAS_PASSWORD=${{ secrets.ANDROID_KEY_ALIAS_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS_PASSWORD=$KEY_ALIAS_PASSWORD" >> "$GITHUB_ENV"
 
           {
             echo "Keystore dosyası oluşturuldu."
@@ -242,13 +240,13 @@ jobs:
               echo "Muhtemel sebepler:"
               echo "1. ANDROID_KEYSTORE_PASSWORD yanlış."
               echo "2. ANDROID_KEY_ALIAS yanlış."
-              echo "3. ANDROID_KEYSTORE_BASE64 yanlış keystore dosyasından üretildi."
-              echo "4. Secret içine base64 çıktısı eksik/bozuk yapıştırıldı."
+              echo "3. ANDROID_KEYSTORE_BASE64 yanlış dosyadan üretildi."
+              echo "4. Secret içine base64 eksik/bozuk yapıştırıldı."
               echo ""
-              echo "Ubuntu tekrar üretim komutu:"
+              echo "Ubuntu base64 üretim:"
               echo "base64 -w 0 release.keystore"
               echo ""
-              echo "Alias kontrol komutu:"
+              echo "Alias kontrol:"
               echo "keytool -list -v -keystore release.keystore"
             } | tee -a early_diagnostics/keystore_hatasi.txt
 
@@ -295,13 +293,13 @@ jobs:
               echo ""
               echo "HATA: :app:bundleRelease başarısız oldu."
               echo "Muhtemel sebepler:"
-              echo "1. Java dosyasında compile hatası."
+              echo "1. Java compile hatası."
               echo "2. XML resource hatası."
               echo "3. AndroidManifest.xml hatası."
-              echo "4. app/build.gradle signingConfig veya dependency hatası."
+              echo "4. app/build.gradle signingConfig hatası."
               echo "5. drawable/color/dimen kaynak adı hatası."
               echo ""
-              echo "Ayrıntı için build_aab.log dosyasını kontrol et."
+              echo "Ayrıntı: build_aab.log"
             } | tee early_diagnostics/gradle_build_hatasi.txt
             exit 1
           fi
@@ -316,7 +314,7 @@ jobs:
           AAB_PATH="$(find app/build/outputs/bundle -type f -name '*.aab' | sort | head -n 1)"
 
           if [ -z "$AAB_PATH" ]; then
-            echo "HATA: AAB dosyası bulunamadı. bundleRelease tamamlanmamış olabilir." | tee early_diagnostics/aab_bulunamadi.txt
+            echo "HATA: AAB dosyası bulunamadı." | tee early_diagnostics/aab_bulunamadi.txt
             exit 1
           fi
 
@@ -331,7 +329,6 @@ jobs:
         run: |
           set -euxo pipefail
           AAB_PATH="dist_artifacts/mini-kod-editoru-${APP_VERSION}.aab"
-          test -f "$AAB_PATH"
 
           if ! jarsigner -verify -verbose -certs "$AAB_PATH" 2>&1 | tee early_diagnostics/aab_imza_dogrula.txt; then
             {
@@ -340,7 +337,7 @@ jobs:
               echo "Muhtemel sebepler:"
               echo "1. signingConfig release doğru bağlanmadı."
               echo "2. Keystore bilgileri yanlış."
-              echo "3. AAB dosyası bozuk oluştu."
+              echo "3. AAB bozuk oluştu."
             } | tee early_diagnostics/aab_imza_hatasi.txt
             exit 1
           fi
@@ -350,12 +347,10 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p play_console_upload/aab_inspect
-
           AAB_PATH="dist_artifacts/mini-kod-editoru-${APP_VERSION}.aab"
 
           unzip -l "$AAB_PATH" | tee play_console_upload/aab_file_list.txt
           unzip -q "$AAB_PATH" -d play_console_upload/aab_inspect
-
           find play_console_upload/aab_inspect -maxdepth 5 -type f | sort | tee play_console_upload/aab_extracted_files.txt
 
       - name: Play Console belge paketi hazırla
@@ -419,93 +414,7 @@ jobs:
             echo ""
             echo "===== EARLY DIAGNOSTICS ====="
             find early_diagnostics -type f -print || true
-            echo ""
-            echo "===== BUILD FILES SAMPLE ====="
-            find app/build -maxdepth 5 -type f | sort | head -300 || true
           } | tee early_diagnostics/build_ciktilari.txt
-
-      - name: Gradle Android özetini çıkar
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          def oku(dosya):
-              p = Path(dosya)
-              if not p.exists():
-                  return ""
-              return p.read_text(encoding="utf-8", errors="ignore")
-
-          log_text = "\n".join([
-              oku("build_clean.log"),
-              oku("build_aab.log"),
-              oku("early_diagnostics/keystore_hatasi.txt"),
-              oku("early_diagnostics/gradle_build_hatasi.txt"),
-              oku("early_diagnostics/aab_imza_hatasi.txt"),
-              oku("early_diagnostics/repo_eksik_dosya.txt"),
-          ]).splitlines()
-
-          patterns = [
-              r"gradle",
-              r"android",
-              r"aab",
-              r"bundle",
-              r"manifest",
-              r"resources",
-              r"aapt",
-              r"dex",
-              r"javac",
-              r"compile",
-              r"error",
-              r"hata",
-              r"failed",
-              r"exception",
-              r"warning",
-              r"sign",
-              r"jarsigner",
-              r"keystore",
-              r"secret",
-              r"alias",
-          ]
-
-          selected = []
-          seen = set()
-
-          for line in log_text:
-              low = line.lower()
-              if any(re.search(pattern, low) for pattern in patterns):
-                  clean = line.strip()
-                  if clean and clean not in seen:
-                      seen.add(clean)
-                      selected.append(clean)
-
-          sections = []
-          sections.append("## Gradle / Android AAB build log özeti\n\n```text\n" + "\n".join(selected[:1000]) + "\n```")
-          sections.append("## Erken teşhis dosyaları\n\n```text\n" + "\n".join(str(p) for p in sorted(Path("early_diagnostics").glob("*.txt"))) + "\n```")
-
-          for early_file in sorted(Path("early_diagnostics").glob("*.txt")):
-              text = oku(early_file)
-              sections.append(f"## {early_file}\n\n```text\n{text[:18000]}\n```")
-
-          for file_name, title in [
-              ("play_console_upload/README_PLAY_CONSOLE.txt", "Play Console paket açıklaması"),
-              ("play_console_upload/aab_file_list.txt", "AAB dosya listesi"),
-              ("play_console_upload/aab_extracted_files.txt", "AAB çıkarılmış dosya listesi"),
-          ]:
-              text = oku(file_name)
-              if text:
-                  sections.append(f"## {title}\n\n```text\n{text[:18000]}\n```")
-
-          Path("gradle_android_summary.md").write_text("\n\n".join(sections), encoding="utf-8")
-          PY
-
-      - name: Gradle Android özetini GitHub Summary'ye yaz
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          cat gradle_android_summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Hata özeti hazırla
         if: ${{ failure() }}
@@ -513,7 +422,6 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
 
           def oku(dosya):
               p = Path(dosya)
@@ -550,9 +458,7 @@ jobs:
               output.append("Build erken aşamada durmuş olabilir. early_diagnostics klasörünü kontrol et.")
               output.append("```")
 
-          output.extend(["", "## Kontrol edilecek dosyalar"])
-
-          output.append("```text")
+          output.extend(["", "## Kontrol edilecek dosyalar", "```text"])
           output.append("MiniKodEditoru/app/build.gradle")
           output.append("MiniKodEditoru/.github/workflows/android.yml")
           output.append("GitHub Secrets:")
@@ -562,24 +468,9 @@ jobs:
           output.append("- ANDROID_KEY_ALIAS_PASSWORD")
           output.append("```")
 
-          output.extend(["", "## Erken teşhis dosyaları"])
-
           for early_file in sorted(Path("early_diagnostics").glob("*.txt")):
               text = oku(early_file)
-              output.extend(["", f"### {early_file}", "```text", text[:18000], "```"])
-
-          env_dump = oku("env_dump.txt")
-          if env_dump:
-              selected = []
-              for line in env_dump.splitlines():
-                  if any(key in line for key in [
-                      "ANDROID", "JAVA_HOME", "GITHUB_WORKSPACE",
-                      "RUNNER_OS", "BUILD_NUMBER", "APP_VERSION",
-                      "APP_VERSION_CODE", "GRADLE", "SDKMANAGER"
-                  ]):
-                      selected.append(line)
-
-              output.extend(["", "## Ortam özeti", "```text", "\n".join(selected[:360]), "```"])
+              output.extend(["", f"## {early_file}", "```text", text[:18000], "```"])
 
           Path("summary.md").write_text("\n".join(output), encoding="utf-8")
           PY
@@ -589,6 +480,44 @@ jobs:
         shell: bash
         run: |
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Gradle Android özetini çıkar
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def oku(dosya):
+              p = Path(dosya)
+              if not p.exists():
+                  return ""
+              return p.read_text(encoding="utf-8", errors="ignore")
+
+          sections = []
+          sections.append("## Erken teşhis dosyaları\n\n```text\n" + "\n".join(str(p) for p in sorted(Path("early_diagnostics").glob("*.txt"))) + "\n```")
+
+          for early_file in sorted(Path("early_diagnostics").glob("*.txt")):
+              text = oku(early_file)
+              sections.append(f"## {early_file}\n\n```text\n{text[:18000]}\n```")
+
+          for file_name, title in [
+              ("play_console_upload/README_PLAY_CONSOLE.txt", "Play Console paket açıklaması"),
+              ("play_console_upload/aab_file_list.txt", "AAB dosya listesi"),
+              ("play_console_upload/aab_extracted_files.txt", "AAB çıkarılmış dosya listesi"),
+          ]:
+              text = oku(file_name)
+              if text:
+                  sections.append(f"## {title}\n\n```text\n{text[:18000]}\n```")
+
+          Path("gradle_android_summary.md").write_text("\n\n".join(sections), encoding="utf-8")
+          PY
+
+      - name: Gradle Android özetini GitHub Summary'ye yaz
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          cat gradle_android_summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build log ve teşhis dosyalarını yükle
         if: ${{ always() }}
