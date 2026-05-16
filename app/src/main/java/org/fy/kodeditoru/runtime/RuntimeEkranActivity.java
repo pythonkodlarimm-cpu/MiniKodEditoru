@@ -33,7 +33,6 @@ public final class RuntimeEkranActivity extends Activity {
 
     private FrameLayout kokAlan;
     private XmlOnizlemeYoneticisi xmlOnizlemeYoneticisi;
-    private RuntimeDavranisYoneticisi runtimeDavranisYoneticisi;
     private JavaDavranisParser javaDavranisParser;
 
     /**
@@ -67,11 +66,6 @@ public final class RuntimeEkranActivity extends Activity {
                 new XmlOnizlemeYoneticisi(
                         this,
                         kokAlan
-                );
-
-        runtimeDavranisYoneticisi =
-                new RuntimeDavranisYoneticisi(
-                        this
                 );
 
         javaDavranisParser =
@@ -121,6 +115,12 @@ public final class RuntimeEkranActivity extends Activity {
         Map<String, RuntimeDavranisModeli> davranislar =
                 javaDavranisParser.davranislariCikar(
                         RuntimeVeriDeposu.javaIcerikGetir()
+                );
+
+        RuntimeDavranisYoneticisi runtimeDavranisYoneticisi =
+                new RuntimeDavranisYoneticisi(
+                        this,
+                        kokAlan
                 );
 
         runtimeDavranisYoneticisi.davranislariUygula(
@@ -175,6 +175,7 @@ public final class RuntimeEkranActivity extends Activity {
      * Root runtime alanını döndürür.
      */
     public View getKokAlan() {
+
         return kokAlan;
     }
-  }
+}
