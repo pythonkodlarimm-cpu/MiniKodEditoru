@@ -192,6 +192,21 @@ jobs:
             exit 1
           fi
 
+          if [ -z "${KEYSTORE_PASSWORD:-}" ]; then
+            echo "HATA: ANDROID_KEYSTORE_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
+            exit 1
+          fi
+
+          if [ -z "${KEY_ALIAS:-}" ]; then
+            echo "HATA: ANDROID_KEY_ALIAS secret boş." | tee early_diagnostics/keystore_hatasi.txt
+            exit 1
+          fi
+
+          if [ -z "${KEY_ALIAS_PASSWORD:-}" ]; then
+            echo "HATA: ANDROID_KEY_ALIAS_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
+            exit 1
+          fi
+
           printf '%s' "$KEYSTORE_BASE64" > secure/release.keystore.base64
 
           if ! base64 --decode secure/release.keystore.base64 > secure/release.keystore 2> early_diagnostics/keystore_base64_decode_hatasi.txt; then
@@ -298,24 +313,22 @@ jobs:
           fi
 
       - name: ReTrace eşleşme dosyasını hazırla
-        if: ${{ always() }}
+        if: ${{ success() }}
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p dist_artifacts/retrace-mapping
 
-          if [ -f app/build/outputs/mapping/release/mapping.txt ]; then
-            cp app/build/outputs/mapping/release/mapping.txt "dist_artifacts/retrace-mapping/mapping-${APP_VERSION}.txt"
-          else
-            echo "mapping.txt bulunamadı. minifyEnabled true değilse veya release build tamamlanmadıysa bu normaldir." \
-              > dist_artifacts/retrace-mapping/mapping-yok.txt
+          if [ ! -f app/build/outputs/mapping/release/mapping.txt ]; then
+            echo "HATA: mapping.txt bulunamadı. minifyEnabled true olmalı ve release build tamamlanmalı." | tee early_diagnostics/retrace_mapping_hatasi.txt
+            exit 1
           fi
 
-          find app/build/outputs/mapping/release -type f -print -exec cp {} dist_artifacts/retrace-mapping/ \; || true
-          ls -la dist_artifacts/retrace-mapping | tee early_diagnostics/retrace_mapping_listesi.txt
+          cp app/build/outputs/mapping/release/mapping.txt dist_artifacts/retrace-mapping/mapping.txt
+          ls -lh dist_artifacts/retrace-mapping/mapping.txt | tee early_diagnostics/retrace_mapping_listesi.txt
 
       - name: Yerel hata ayıklama sembollerini hazırla
-        if: ${{ always() }}
+        if: ${{ success() }}
         shell: bash
         run: |
           set -euxo pipefail
@@ -328,28 +341,30 @@ jobs:
 
           if [ -s early_diagnostics/native_so_listesi.txt ]; then
             while IFS= read -r sofile; do
-              abi="unknown"
+              abi=""
               case "$sofile" in
                 *"/arm64-v8a/"*) abi="arm64-v8a" ;;
                 *"/armeabi-v7a/"*) abi="armeabi-v7a" ;;
                 *"/x86_64/"*) abi="x86_64" ;;
                 *"/x86/"*) abi="x86" ;;
+                *) abi="" ;;
               esac
 
-              mkdir -p "dist_artifacts/native-debug-symbols/raw/${abi}"
-              cp "$sofile" "dist_artifacts/native-debug-symbols/raw/${abi}/$(basename "$sofile")"
+              if [ -n "$abi" ]; then
+                mkdir -p "dist_artifacts/native-debug-symbols/raw/${abi}"
+                cp "$sofile" "dist_artifacts/native-debug-symbols/raw/${abi}/$(basename "$sofile")"
+              fi
             done < early_diagnostics/native_so_listesi.txt
 
-            (
-              cd dist_artifacts/native-debug-symbols/raw
-              zip -r "../native-debug-symbols-${APP_VERSION}.zip" .
-            )
-          else
-            echo "Native .so bulunamadı. Saf Java/XML projede bu normaldir." \
-              > dist_artifacts/native-debug-symbols/native-symbols-yok.txt
+            if find dist_artifacts/native-debug-symbols/raw -type f -name "*.so" | grep -q .; then
+              (
+                cd dist_artifacts/native-debug-symbols/raw
+                zip -r "../native-debug-symbols-${APP_VERSION}.zip" .
+              )
+            fi
           fi
 
-          find dist_artifacts/native-debug-symbols -type f | sort | tee early_diagnostics/native_debug_symbols_listesi.txt
+          find dist_artifacts/native-debug-symbols -type f | sort | tee early_diagnostics/native_debug_symbols_listesi.txt || true
 
       - name: Build çıktıları listele
         if: ${{ always() }}
@@ -388,6 +403,7 @@ jobs:
               "Keystore Base64 decode hatası": oku("early_diagnostics/keystore_base64_decode_hatasi.txt"),
               "Keystore doğrulama": oku("early_diagnostics/keystore_dogrulama.txt"),
               "Gradle build hatası": oku("early_diagnostics/gradle_build_hatasi.txt"),
+              "ReTrace mapping hatası": oku("early_diagnostics/retrace_mapping_hatasi.txt"),
               "AAB imza hatası": oku("early_diagnostics/aab_imza_hatasi.txt"),
               "Repo eksik dosya": oku("early_diagnostics/repo_eksik_dosya.txt"),
               "Build AAB log": oku("build_aab.log"),
@@ -444,18 +460,18 @@ jobs:
           path: dist_artifacts/aab/*.aab
           if-no-files-found: error
 
-      - name: ReTrace eşleşme dosyasını yükle
-        if: ${{ always() }}
+      - name: ReTrace mapping.txt yükle
+        if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: retrace-mapping-${{ env.APP_VERSION }}
-          path: dist_artifacts/retrace-mapping/**
-          if-no-files-found: warn
+          path: dist_artifacts/retrace-mapping/mapping.txt
+          if-no-files-found: error
 
       - name: Yerel hata ayıklama sembollerini yükle
-        if: ${{ always() }}
+        if: ${{ hashFiles('dist_artifacts/native-debug-symbols/native-debug-symbols-*.zip') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: native-debug-symbols-${{ env.APP_VERSION }}
-          path: dist_artifacts/native-debug-symbols/**
-          if-no-files-found: warn
+          path: dist_artifacts/native-debug-symbols/native-debug-symbols-*.zip
+          if-no-files-found: error
