@@ -8,34 +8,37 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.fy.kodeditoru.R;
 import org.fy.kodeditoru.editor.EditorYoneticisi;
+import org.fy.kodeditoru.log.LogYoneticisi;
 import org.fy.kodeditoru.preview.XmlOnizlemeYoneticisi;
 
 /**
  * Ana ekran UI kurucu modülü.
  *
  * Bu sınıf:
- * - XML ekran bileşenlerini Java tarafına bağlar
- * - akıllı ekran ölçülerini uygular
- * - klavye ve sistem güvenli alanlarını uygular
- * - editör yöneticisini başlatır
- * - XML önizleme yöneticisini başlatır
- * - profesyonel ekran davranışını standartlaştırır
+ * - XML ekran bileşenlerini Java tarafına bağlar.
+ * - akıllı ekran ölçülerini uygular.
+ * - klavye ve sistem güvenli alanlarını uygular.
+ * - editör yöneticisini başlatır.
+ * - XML önizleme yöneticisini başlatır.
+ * - üst buton davranışlarını bağlar.
+ * - kullanıcı aksiyonlarını Android/data uygulama alanındaki log dosyasına yazar.
  *
  * Kural:
- * - dosya okuma/yazma yapmaz
- * - APK derlemez
- * - thread başlatmaz
- * - reklam sistemi çalıştırmaz
- * - ödeme sistemi başlatmaz
+ * - APK derlemez.
+ * - reklam sistemi çalıştırmaz.
+ * - ödeme sistemi başlatmaz.
+ * - ağır işlem yapmaz.
  */
 public final class AnaEkranKurucu {
 
     private final Activity activity;
     private final EkranOlcekYoneticisi olcek;
     private final KlavyeInsetsYoneticisi klavyeInsetsYoneticisi;
+    private final LogYoneticisi logYoneticisi;
 
     private final LinearLayout kokAlan;
     private final LinearLayout ustBar;
@@ -73,6 +76,7 @@ public final class AnaEkranKurucu {
 
         this.activity = activity;
         this.olcek = new EkranOlcekYoneticisi(activity);
+        this.logYoneticisi = new LogYoneticisi(activity);
 
         kokAlan = activity.findViewById(R.id.kokAlan);
         ustBar = activity.findViewById(R.id.ustBar);
@@ -128,6 +132,9 @@ public final class AnaEkranKurucu {
         cihazSinifiniUygula();
 
         klavyeInsetsYoneticisi.baslat();
+
+        logYaz("Ana ekran yapılandırıldı.");
+        logYaz("Log dosyası: " + logYoneticisi.logDosyaYoluGetir());
     }
 
     /**
@@ -204,12 +211,87 @@ public final class AnaEkranKurucu {
         yukseklikUygula(xmlOnizlemeButonu, butonYukseklik);
         yukseklikUygula(klasorButonu, butonYukseklik);
 
-        xmlOnizlemeButonu.setOnClickListener(v -> {
+        yeniDosyaButonu.setOnClickListener(v -> yeniDosyaOlustur());
+        kaydetButonu.setOnClickListener(v -> kaydet());
+        xmlOnizlemeButonu.setOnClickListener(v -> onizlemeYap());
+        klasorButonu.setOnClickListener(v -> projelerButonuTiklandi());
 
-            String xml = editorYoneticisi.icerikGetir();
+        logYaz("Üst buton olayları bağlandı.");
+    }
 
-            xmlOnizlemeYoneticisi.onizlemeGuncelle(xml);
-        });
+    /**
+     * Yeni dosya davranışını çalıştırır.
+     */
+    private void yeniDosyaOlustur() {
+
+        editorYoneticisi.icerikTemizle();
+        xmlOnizlemeYoneticisi.onizlemeGuncelle("");
+
+        dosyaYoluMetni.setText("Yeni dosya");
+        durumRozeti.setText("Yeni");
+
+        mesajGoster("Yeni dosya hazırlandı.");
+        logYaz("Yeni dosya butonu çalıştı.");
+    }
+
+    /**
+     * Kaydet davranışını çalıştırır.
+     *
+     * Not:
+     * Şu an gerçek dosya yazma servisi bağlı değildir.
+     */
+    private void kaydet() {
+
+        String icerik = editorYoneticisi.icerikGetir();
+
+        if (icerik.trim().isEmpty()) {
+            mesajGoster("Kaydedilecek kod yok.");
+            logYaz("Kaydet butonu çalıştı: içerik boş.");
+            return;
+        }
+
+        dosyaYoluMetni.setText("Geçici kayıt hazır");
+        durumRozeti.setText("Kayıt");
+
+        mesajGoster("Kod geçici olarak hazırlandı.");
+        logYaz(
+                "Kaydet butonu çalıştı. Karakter sayısı: "
+                + icerik.length()
+        );
+    }
+
+    /**
+     * XML önizleme davranışını çalıştırır.
+     */
+    private void onizlemeYap() {
+
+        String xml = editorYoneticisi.icerikGetir();
+
+        if (xml.trim().isEmpty()) {
+            mesajGoster("Önizleme için XML kodu yaz.");
+            logYaz("Önizle butonu çalıştı: içerik boş.");
+            return;
+        }
+
+        xmlOnizlemeYoneticisi.onizlemeGuncelle(xml);
+        durumRozeti.setText("Önizleme");
+
+        mesajGoster("Önizleme güncellendi.");
+        logYaz(
+                "Önizle butonu çalıştı. Karakter sayısı: "
+                + xml.length()
+        );
+    }
+
+    /**
+     * Projeler butonu geçici davranışını çalıştırır.
+     */
+    private void projelerButonuTiklandi() {
+
+        durumRozeti.setText("Projeler");
+
+        mesajGoster("Projeler bölümü sonraki güncellemede eklenecek.");
+        logYaz("Projeler butonu çalıştı.");
     }
 
     /**
@@ -229,10 +311,12 @@ public final class AnaEkranKurucu {
 
         if (olcek.isTablet()) {
             durumRozeti.setText("Tablet");
+            logYaz("Cihaz sınıfı: Tablet");
             return;
         }
 
         durumRozeti.setText("Telefon");
+        logYaz("Cihaz sınıfı: Telefon");
     }
 
     /**
@@ -249,6 +333,30 @@ public final class AnaEkranKurucu {
     }
 
     /**
+     * Kullanıcıya kısa mesaj gösterir.
+     */
+    private void mesajGoster(
+            String mesaj
+    ) {
+
+        Toast.makeText(
+                activity,
+                mesaj,
+                Toast.LENGTH_SHORT
+        ).show();
+    }
+
+    /**
+     * Dosya log kaydı yazar.
+     */
+    private void logYaz(
+            String mesaj
+    ) {
+
+        logYoneticisi.logYaz(mesaj);
+    }
+
+    /**
      * Editör yöneticisini döndürür.
      */
     public EditorYoneticisi getEditorYoneticisi() {
@@ -261,4 +369,4 @@ public final class AnaEkranKurucu {
     public XmlOnizlemeYoneticisi getXmlOnizlemeYoneticisi() {
         return xmlOnizlemeYoneticisi;
     }
-  }
+            }
