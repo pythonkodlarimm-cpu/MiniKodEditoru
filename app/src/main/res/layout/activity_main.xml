@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/kokAlan"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/topbar_background"
-        android:elevation="6dp"
+        android:elevation="8dp"
         android:gravity="center_vertical"
         android:minHeight="@dimen/ust_bar_yukseklik"
         android:orientation="horizontal"
@@ -40,8 +41,8 @@
                 android:id="@+id/altBaslikMetni"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="Java • Kotlin • XML"
+                android:layout_marginTop="3dp"
+                android:text="Proje • Dosya • Runtime"
                 android:textColor="@color/metin_pasif"
                 android:textSize="@dimen/yazi_kucuk" />
 
@@ -79,61 +80,82 @@
             android:paddingStart="@dimen/padding_normal"
             android:paddingTop="@dimen/padding_normal"
             android:paddingEnd="@dimen/padding_normal"
-            android:paddingBottom="@dimen/padding_cok_kucuk">
+            android:paddingBottom="@dimen/padding_kucuk">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/klasorButonu"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/buton_yukseklik"
+                android:layout_marginEnd="@dimen/padding_kucuk"
+                android:minWidth="126dp"
+                android:text="Projeler"
+                android:textAllCaps="false"
+                android:textColor="@color/metin_beyaz"
+                app:cornerRadius="14dp"
+                app:icon="@android:drawable/ic_menu_manage"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/metin_beyaz" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/yeniDosyaButonu"
                 android:layout_width="wrap_content"
                 android:layout_height="@dimen/buton_yukseklik"
                 android:layout_marginEnd="@dimen/padding_kucuk"
-                android:background="@drawable/button_background"
                 android:minWidth="110dp"
                 android:text="Yeni"
                 android:textAllCaps="false"
-                android:textColor="@color/metin_beyaz" />
+                android:textColor="@color/metin_beyaz"
+                app:cornerRadius="14dp"
+                app:icon="@android:drawable/ic_menu_add"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/metin_beyaz" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/kaydetButonu"
                 android:layout_width="wrap_content"
                 android:layout_height="@dimen/buton_yukseklik"
                 android:layout_marginEnd="@dimen/padding_kucuk"
-                android:background="@drawable/button_background"
-                android:minWidth="110dp"
+                android:minWidth="112dp"
                 android:text="Kaydet"
                 android:textAllCaps="false"
-                android:textColor="@color/metin_beyaz" />
+                android:textColor="@color/metin_beyaz"
+                app:cornerRadius="14dp"
+                app:icon="@android:drawable/ic_menu_save"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/metin_beyaz" />
 
-            <Button
-                android:id="@+id/xmlOnizlemeButonu"
-                android:layout_width="wrap_content"
-                android:layout_height="@dimen/buton_yukseklik"
-                android:layout_marginEnd="@dimen/padding_kucuk"
-                android:background="@drawable/button_background"
-                android:minWidth="110dp"
-                android:text="Önizle"
-                android:textAllCaps="false"
-                android:textColor="@color/metin_beyaz" />
-
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/calistirButonu"
                 android:layout_width="wrap_content"
                 android:layout_height="@dimen/buton_yukseklik"
                 android:layout_marginEnd="@dimen/padding_kucuk"
-                android:background="@drawable/button_background"
-                android:minWidth="110dp"
+                android:minWidth="122dp"
                 android:text="Çalıştır"
                 android:textAllCaps="false"
-                android:textColor="@color/metin_beyaz" />
+                android:textColor="@color/metin_beyaz"
+                app:cornerRadius="14dp"
+                app:icon="@android:drawable/ic_media_play"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/metin_beyaz" />
 
-            <Button
-                android:id="@+id/klasorButonu"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/xmlOnizlemeButonu"
                 android:layout_width="wrap_content"
                 android:layout_height="@dimen/buton_yukseklik"
-                android:background="@drawable/button_background"
-                android:minWidth="120dp"
-                android:text="Projeler"
+                android:layout_marginEnd="@dimen/padding_kucuk"
+                android:minWidth="112dp"
+                android:text="Kontrol"
                 android:textAllCaps="false"
-                android:textColor="@color/metin_beyaz" />
+                android:textColor="@color/metin_beyaz"
+                app:cornerRadius="14dp"
+                app:icon="@android:drawable/ic_menu_view"
+                app:iconGravity="textStart"
+                app:iconPadding="8dp"
+                app:iconTint="@color/metin_beyaz" />
 
         </LinearLayout>
 
@@ -161,7 +183,7 @@
             android:paddingTop="@dimen/padding_normal"
             android:paddingEnd="@dimen/padding_buyuk"
             android:paddingBottom="@dimen/padding_normal"
-            android:text="Dosya seçilmedi"
+            android:text="Seçili proje ve dosya bekleniyor"
             android:textColor="@color/metin_gri"
             android:textSize="@dimen/yazi_kucuk" />
 
@@ -170,9 +192,9 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginTop="@dimen/kart_margin"
-            android:layout_weight="1.45"
+            android:layout_weight="1"
             android:background="@drawable/card_background"
-            android:elevation="4dp"
+            android:elevation="8dp"
             android:orientation="vertical">
 
             <LinearLayout
@@ -197,37 +219,49 @@
                     android:textSize="@dimen/yazi_normal"
                     android:textStyle="bold" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/editorKopyalaButonu"
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/buton_yukseklik"
                     android:layout_marginEnd="@dimen/padding_cok_kucuk"
-                    android:background="@drawable/button_background"
-                    android:minWidth="72dp"
+                    android:minWidth="52dp"
                     android:text="Kopyala"
                     android:textAllCaps="false"
-                    android:textColor="@color/metin_beyaz" />
+                    android:textColor="@color/metin_beyaz"
+                    app:cornerRadius="12dp"
+                    app:icon="@android:drawable/ic_menu_share"
+                    app:iconGravity="textStart"
+                    app:iconPadding="6dp"
+                    app:iconTint="@color/metin_beyaz" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/editorYapistirButonu"
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/buton_yukseklik"
                     android:layout_marginEnd="@dimen/padding_cok_kucuk"
-                    android:background="@drawable/button_background"
-                    android:minWidth="72dp"
+                    android:minWidth="52dp"
                     android:text="Yapıştır"
                     android:textAllCaps="false"
-                    android:textColor="@color/metin_beyaz" />
+                    android:textColor="@color/metin_beyaz"
+                    app:cornerRadius="12dp"
+                    app:icon="@android:drawable/ic_menu_edit"
+                    app:iconGravity="textStart"
+                    app:iconPadding="6dp"
+                    app:iconTint="@color/metin_beyaz" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/editorTemizleButonu"
                     android:layout_width="wrap_content"
                     android:layout_height="@dimen/buton_yukseklik"
-                    android:background="@drawable/button_background"
-                    android:minWidth="72dp"
+                    android:minWidth="52dp"
                     android:text="Sil"
                     android:textAllCaps="false"
-                    android:textColor="@color/metin_beyaz" />
+                    android:textColor="@color/metin_beyaz"
+                    app:cornerRadius="12dp"
+                    app:icon="@android:drawable/ic_menu_delete"
+                    app:iconGravity="textStart"
+                    app:iconPadding="6dp"
+                    app:iconTint="@color/metin_beyaz" />
 
             </LinearLayout>
 
@@ -239,7 +273,7 @@
                 android:background="@drawable/input_background"
                 android:fontFamily="monospace"
                 android:gravity="top|start"
-                android:hint="Java, Kotlin veya XML kodunu yaz..."
+                android:hint="Seçili projedeki dosyayı düzenle..."
                 android:inputType="textMultiLine|textNoSuggestions"
                 android:overScrollMode="always"
                 android:padding="@dimen/editor_padding"
@@ -255,46 +289,14 @@
 
         <LinearLayout
             android:id="@+id/onizlemeKart"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginTop="@dimen/kart_margin"
-            android:layout_weight="0.85"
-            android:background="@drawable/card_background"
-            android:elevation="4dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/onizlemeBaslik"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/topbar_background"
-                android:paddingStart="@dimen/padding_buyuk"
-                android:paddingTop="@dimen/padding_normal"
-                android:paddingEnd="@dimen/padding_buyuk"
-                android:paddingBottom="@dimen/padding_normal"
-                android:text="XML Önizleme"
-                android:textColor="@color/metin_beyaz"
-                android:textSize="@dimen/yazi_normal"
-                android:textStyle="bold" />
+            android:visibility="gone">
 
             <FrameLayout
                 android:id="@+id/onizlemeAlani"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:background="@drawable/preview_background"
-                android:padding="@dimen/padding_normal">
-
-                <TextView
-                    android:id="@+id/bosOnizlemeMetni"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="Önizleme burada görünecek"
-                    android:textColor="@color/metin_pasif"
-                    android:textSize="@dimen/yazi_normal" />
-
-            </FrameLayout>
+                android:layout_width="0dp"
+                android:layout_height="0dp" />
 
         </LinearLayout>
 
