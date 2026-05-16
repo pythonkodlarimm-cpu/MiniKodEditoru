@@ -7,19 +7,20 @@ import android.widget.EditText;
  * Merkezi editör yönetim modülü.
  *
  * Bu sınıf:
- * - EditText editör alanını yapılandırır
- * - editöre metin yükler
- * - editörden metin alır
- * - çok satırlı kod editörü davranışı kurar
- * - temel editör standartlarını uygular
+ * - EditText editör alanını yapılandırır.
+ * - editöre metin ayarlar.
+ * - editörden metin alır.
+ * - editörü temizler.
+ * - çok satırlı kod editörü davranışı kurar.
+ * - temel editör standartlarını uygular.
  *
  * Kural:
- * - dosya okuma/yazma yapmaz
- * - XML önizleme üretmez
- * - syntax highlight işlemi yapmaz
- * - thread başlatmaz
- * - Activity yönetmez
- * - proje yönetimi yapmaz
+ * - dosya okuma/yazma yapmaz.
+ * - XML önizleme üretmez.
+ * - syntax highlight işlemi yapmaz.
+ * - thread başlatmaz.
+ * - Activity yönetmez.
+ * - proje yönetimi yapmaz.
  */
 public final class EditorYoneticisi {
 
@@ -49,7 +50,6 @@ public final class EditorYoneticisi {
     private void editoruYapilandir() {
 
         editor.setHorizontallyScrolling(true);
-
         editor.setSingleLine(false);
 
         editor.setInputType(
@@ -59,9 +59,7 @@ public final class EditorYoneticisi {
         );
 
         editor.setTextIsSelectable(true);
-
         editor.setVerticalScrollBarEnabled(true);
-
         editor.setHorizontalScrollBarEnabled(true);
 
         editor.setPadding(
@@ -75,15 +73,27 @@ public final class EditorYoneticisi {
     }
 
     /**
-     * Editöre içerik yükler.
+     * Editöre içerik ayarlar.
      */
-    public void icerikYukle(
+    public void icerikAyarla(
             String icerik
     ) {
 
         editor.setText(
                 icerik == null ? "" : icerik
         );
+
+        imlecSonaGit();
+    }
+
+    /**
+     * Editöre içerik yükler.
+     */
+    public void icerikYukle(
+            String icerik
+    ) {
+
+        icerikAyarla(icerik);
     }
 
     /**
@@ -91,8 +101,11 @@ public final class EditorYoneticisi {
      */
     public String icerikGetir() {
 
-        return editor.getText()
-                .toString();
+        if (editor.getText() == null) {
+            return "";
+        }
+
+        return editor.getText().toString();
     }
 
     /**
@@ -118,9 +131,16 @@ public final class EditorYoneticisi {
      */
     public void imlecSonaGit() {
 
-        int uzunluk = editor.getText().length();
+        if (editor.getText() == null) {
+            return;
+        }
 
-        editor.setSelection(uzunluk);
+        int uzunluk =
+                editor.getText().length();
+
+        editor.setSelection(
+                uzunluk
+        );
     }
 
     /**
@@ -129,4 +149,4 @@ public final class EditorYoneticisi {
     public EditText getEditor() {
         return editor;
     }
-  }
+        }
