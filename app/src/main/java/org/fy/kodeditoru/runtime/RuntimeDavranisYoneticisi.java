@@ -2,8 +2,11 @@ package org.fy.kodeditoru.runtime;
 
 import android.app.Activity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import org.fy.kodeditoru.preview.XmlOnizlemeYoneticisi;
 
 import java.util.Map;
 
@@ -12,16 +15,11 @@ import java.util.Map;
  *
  * Bu sınıf:
  * - runtime ekranındaki View nesnelerini yönetir.
+ * - XML önizleme motorunun tag olarak sakladığı android:id değerlerini bulur.
  * - Java parser tarafından çıkarılan davranışları uygular.
  * - buton tıklama olaylarını bağlar.
  * - Toast davranışlarını çalıştırır.
  * - TextView setText davranışlarını uygular.
- * - gerçek uygulama hissine yakın runtime test davranışı sağlar.
- *
- * Örnek:
- * - Button tıklandı
- * - Toast gösterildi
- * - TextView text değişti
  *
  * Kural:
  * - gerçek Java kodu çalıştırmaz.
@@ -33,12 +31,14 @@ import java.util.Map;
 public final class RuntimeDavranisYoneticisi {
 
     private final Activity activity;
+    private final View kokView;
 
     /**
      * RuntimeDavranisYoneticisi oluşturur.
      */
     public RuntimeDavranisYoneticisi(
-            Activity activity
+            Activity activity,
+            View kokView
     ) {
 
         if (activity == null) {
@@ -47,7 +47,14 @@ public final class RuntimeDavranisYoneticisi {
             );
         }
 
+        if (kokView == null) {
+            throw new IllegalArgumentException(
+                    "Kök View null olamaz."
+            );
+        }
+
         this.activity = activity;
+        this.kokView = kokView;
     }
 
     /**
@@ -62,7 +69,6 @@ public final class RuntimeDavranisYoneticisi {
         }
 
         for (RuntimeDavranisModeli model : davranislar.values()) {
-
             davranisiBagla(model);
         }
     }
@@ -78,19 +84,10 @@ public final class RuntimeDavranisYoneticisi {
             return;
         }
 
-        int viewId =
-                activity.getResources().getIdentifier(
-                        model.getTetikleyiciViewId(),
-                        "id",
-                        activity.getPackageName()
-                );
-
-        if (viewId == 0) {
-            return;
-        }
-
         View hedefView =
-                activity.findViewById(viewId);
+                viewIdIleBul(
+                        model.getTetikleyiciViewId()
+                );
 
         if (hedefView == null) {
             return;
@@ -109,7 +106,6 @@ public final class RuntimeDavranisYoneticisi {
     ) {
 
         toastDavranisiniCalistir(model);
-
         setTextDavranisiniCalistir(model);
     }
 
@@ -145,33 +141,81 @@ public final class RuntimeDavranisYoneticisi {
         for (Map.Entry<String, String> entry
                 : model.getSetTextHaritasi().entrySet()) {
 
-            String hedefId =
-                    entry.getKey();
-
-            String yeniMetin =
-                    entry.getValue();
-
-            int viewId =
-                    activity.getResources().getIdentifier(
-                            hedefId,
-                            "id",
-                            activity.getPackageName()
-                    );
-
-            if (viewId == 0) {
-                continue;
-            }
-
             View hedefView =
-                    activity.findViewById(viewId);
+                    viewIdIleBul(
+                            entry.getKey()
+                    );
 
             if (!(hedefView instanceof TextView)) {
                 continue;
             }
 
             ((TextView) hedefView).setText(
-                    yeniMetin
+                    entry.getValue()
             );
         }
+    }
+
+    /**
+     * Runtime tag içindeki android:id değerine göre View bulur.
+     */
+    private View viewIdIleBul(
+            String viewId
+    ) {
+
+        if (viewId == null || viewId.trim().isEmpty()) {
+            return null;
+        }
+
+        return viewIdIleBulRecursive(
+                kokView,
+                viewId.trim()
+        );
+    }
+
+    /**
+     * View ağacında recursive id araması yapar.
+     */
+    private View viewIdIleBulRecursive(
+            View view,
+            String viewId
+    ) {
+
+        if (view == null) {
+            return null;
+        }
+
+        Object tag =
+                view.getTag();
+
+        String beklenenTag =
+                XmlOnizlemeYoneticisi.RUNTIME_ID_TAG_ON_EKI
+                        + viewId;
+
+        if (beklenenTag.equals(tag)) {
+            return view;
+        }
+
+        if (!(view instanceof ViewGroup)) {
+            return null;
+        }
+
+        ViewGroup group =
+                (ViewGroup) view;
+
+        for (int i = 0; i < group.getChildCount(); i++) {
+
+            View sonuc =
+                    viewIdIleBulRecursive(
+                            group.getChildAt(i),
+                            viewId
+                    );
+
+            if (sonuc != null) {
+                return sonuc;
+            }
+        }
+
+        return null;
     }
 }
