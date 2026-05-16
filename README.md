@@ -2,19 +2,30 @@
 
 Modern Android tabanlı Java • Kotlin • XML mobil kod editörü.
 
-## Özellikler
+Profesyonel responsive mimari, güvenli ekran alanı sistemi ve canlı XML önizleme altyapısıyla geliştirilmiştir.
+
+---
+
+# Özellikler
 
 - Java kod düzenleme
 - Kotlin kod düzenleme
 - XML düzenleme
 - XML canlı önizleme
-- Profesyonel koyu tema
+- Android gerçek View render sistemi
 - Responsive Android arayüz
 - Tablet / telefon uyumu
 - Akıllı ekran ölçek sistemi
+- Safe-area / edge-to-edge desteği
+- Gesture navigation uyumu
+- Dynamic WindowInsets desteği
 - Klavye altında kalmayan editör
 - Yatay ve dikey kod kaydırma
 - Modern Material tasarım
+- Android/data log sistemi
+- UTF-8 güvenli dosya yönetimi
+- Dinamik proje oluşturma sistemi
+- Java/XML/Kotlin dosya üretimi
 - Hafif ve hızlı yapı
 
 ---
@@ -22,6 +33,37 @@ Modern Android tabanlı Java • Kotlin • XML mobil kod editörü.
 # Ekran Görüntüleri
 
 Yakında eklenecek.
+
+---
+
+# Yeni Mimari
+
+Yeni sürümde profesyonel Android edge-to-edge mimarisi kullanılmaktadır.
+
+## Safe Area Sistemi
+
+```text
+bridges/
+└── WindowInsetsBridge.java
+
+core/
+└── SafeAreaModel.java
+
+ui/
+├── SafeAreaYoneticisi.java
+├── EdgeToEdgeYoneticisi.java
+├── GestureInsetsYoneticisi.java
+└── WindowMetricsYoneticisi.java
+```
+
+Bu sistem:
+
+- status bar taşmalarını önler
+- notch/cutout alanlarını algılar
+- gesture navigation alanlarını korur
+- klavye altında kalan editörü düzeltir
+- tablet ve katlanabilir cihaz uyumu sağlar
+- gerçek Android WindowInsets verisi kullanır
 
 ---
 
@@ -33,11 +75,14 @@ app/
     └── main/
         ├── java/
         │   └── org/fy/kodeditoru/
+        │       ├── bridges/
+        │       ├── core/
         │       ├── editor/
-        │       ├── preview/
         │       ├── file/
-        │       ├── ui/
-        │       └── core/
+        │       ├── log/
+        │       ├── preview/
+        │       ├── proje/
+        │       └── ui/
         │
         ├── res/
         │   ├── drawable/
@@ -57,6 +102,9 @@ app/
 - XML UI
 - Android Studio
 - Material Design
+- WindowInsets API
+- Edge-to-edge Android UI
+- UTF-8 dosya sistemi
 
 ---
 
@@ -108,16 +156,41 @@ Run -> Run app
 
 ---
 
+# Log Sistemi
+
+Uygulama logları:
+
+```text
+Android/data/<paket_adi>/files/loglar/debug.log
+```
+
+alanına yazılır.
+
+Örnek:
+
+```text
+Android/data/org.fy.kodeditoru/files/loglar/debug.log
+```
+
+---
+
 # Hedefler
 
 - Sekmeli editör sistemi
 - Dosya explorer
-- Proje yönetimi
+- Gerçek proje ağacı
 - Syntax highlight
 - Kod tamamlama
+- XML attribute parser
+- RecyclerView dosya sistemi
 - APK export sistemi
+- Gradle parser
 - Git entegrasyonu
 - Terminal sistemi
+- Java parser
+- Kotlin parser
+- ConstraintLayout preview
+- Compose preview desteği
 
 ---
 
