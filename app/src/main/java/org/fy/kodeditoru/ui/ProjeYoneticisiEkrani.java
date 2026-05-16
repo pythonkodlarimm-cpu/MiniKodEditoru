@@ -3,6 +3,7 @@ package org.fy.kodeditoru.ui;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -26,6 +27,8 @@ import java.util.List;
  * Kural:
  * - dosya içeriği okumaz.
  * - dosya kaydetmez.
+ * - dosya silmez.
+ * - klasör yönetmez.
  * - APK derlemez.
  * - runtime başlatmaz.
  * - editör yönetmez.
@@ -141,18 +144,19 @@ public final class ProjeYoneticisiEkrani {
         TextView satir =
                 new TextView(activity);
 
-        String metin =
-                "📁 "
+        satir.setText(
+                "▣  "
                         + proje.getProjeAdi()
                         + "\n"
                         + proje.getDosyalar().size()
-                        + " dosya";
+                        + " dosya"
+        );
 
-        satir.setText(metin);
-        satir.setTextColor(Color.rgb(30, 41, 59));
+        satir.setTextColor(Color.rgb(15, 23, 42));
         satir.setTextSize(15f);
+        satir.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         satir.setGravity(Gravity.CENTER_VERTICAL);
-        satir.setPadding(24, 18, 24, 18);
+        satir.setPadding(28, 20, 28, 20);
 
         return satir;
     }
@@ -164,10 +168,8 @@ public final class ProjeYoneticisiEkrani {
 
         new AlertDialog.Builder(activity)
                 .setTitle("Proje yok")
-                .setMessage(
-                        "Henüz oluşturulmuş proje bulunamadı."
-                )
+                .setMessage("Henüz oluşturulmuş proje bulunamadı.")
                 .setPositiveButton("Tamam", null)
                 .show();
     }
-          }
+    }
