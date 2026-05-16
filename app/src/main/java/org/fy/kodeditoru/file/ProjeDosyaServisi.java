@@ -2,6 +2,7 @@ package org.fy.kodeditoru.file;
 
 import android.content.Context;
 
+import org.fy.kodeditoru.core.ProjeSabitleri;
 import org.fy.kodeditoru.proje.DosyaModeli;
 import org.fy.kodeditoru.proje.ProjeModeli;
 
@@ -32,8 +33,6 @@ import java.io.IOException;
  */
 public final class ProjeDosyaServisi {
 
-    private static final String PROJELER_KLASORU_ADI = "projeler";
-
     private final File projelerKlasoru;
 
     /**
@@ -61,7 +60,7 @@ public final class ProjeDosyaServisi {
         projelerKlasoru =
                 new File(
                         anaKlasor,
-                        PROJELER_KLASORU_ADI
+                        ProjeSabitleri.PROJELER_KLASORU
                 );
 
         klasorOlustur(projelerKlasoru);
@@ -234,6 +233,12 @@ public final class ProjeDosyaServisi {
             return "";
         }
 
+        if (hedefDosya.length() > ProjeSabitleri.MAX_DOSYA_BOYUTU) {
+            throw new IOException(
+                    "Dosya boyutu izin verilen sınırı aşıyor."
+            );
+        }
+
         StringBuilder builder =
                 new StringBuilder();
 
@@ -274,7 +279,7 @@ public final class ProjeDosyaServisi {
         DosyaModeli javaDosya =
                 javaDosyasiOlustur(
                         proje,
-                        "MainActivity.java"
+                        ProjeSabitleri.VARSAYILAN_JAVA_DOSYASI
                 );
 
         dosyaKaydet(
@@ -285,7 +290,7 @@ public final class ProjeDosyaServisi {
         DosyaModeli xmlDosya =
                 xmlDosyasiOlustur(
                         proje,
-                        "activity_main.xml"
+                        ProjeSabitleri.VARSAYILAN_XML_DOSYASI
                 );
 
         dosyaKaydet(
@@ -398,7 +403,7 @@ public final class ProjeDosyaServisi {
     ) {
 
         if (projeAdi == null || projeAdi.trim().isEmpty()) {
-            return "YeniProje";
+            return ProjeSabitleri.VARSAYILAN_PROJE_ADI;
         }
 
         return projeAdi
@@ -420,11 +425,11 @@ public final class ProjeDosyaServisi {
         if (temizAd.isEmpty()) {
 
             if (DosyaModeli.TUR_XML.equals(tur)) {
-                temizAd = "activity_main.xml";
+                temizAd = ProjeSabitleri.VARSAYILAN_XML_DOSYASI;
             } else if (DosyaModeli.TUR_KOTLIN.equals(tur)) {
-                temizAd = "MainActivity.kt";
+                temizAd = ProjeSabitleri.VARSAYILAN_KOTLIN_DOSYASI;
             } else {
-                temizAd = "MainActivity.java";
+                temizAd = ProjeSabitleri.VARSAYILAN_JAVA_DOSYASI;
             }
         }
 
@@ -432,21 +437,33 @@ public final class ProjeDosyaServisi {
                 temizAd.replaceAll("[/\\\\:*?\"<>|]", "_");
 
         if (DosyaModeli.TUR_XML.equals(tur)
-                && !temizAd.toLowerCase().endsWith(".xml")) {
+                && !temizAd.toLowerCase().endsWith(
+                        ProjeSabitleri.XML_UZANTISI
+                )) {
 
-            temizAd = temizAd + ".xml";
+            temizAd =
+                    temizAd
+                    + ProjeSabitleri.XML_UZANTISI;
         }
 
         if (DosyaModeli.TUR_JAVA.equals(tur)
-                && !temizAd.toLowerCase().endsWith(".java")) {
+                && !temizAd.toLowerCase().endsWith(
+                        ProjeSabitleri.JAVA_UZANTISI
+                )) {
 
-            temizAd = temizAd + ".java";
+            temizAd =
+                    temizAd
+                    + ProjeSabitleri.JAVA_UZANTISI;
         }
 
         if (DosyaModeli.TUR_KOTLIN.equals(tur)
-                && !temizAd.toLowerCase().endsWith(".kt")) {
+                && !temizAd.toLowerCase().endsWith(
+                        ProjeSabitleri.KOTLIN_UZANTISI
+                )) {
 
-            temizAd = temizAd + ".kt";
+            temizAd =
+                    temizAd
+                    + ProjeSabitleri.KOTLIN_UZANTISI;
         }
 
         return temizAd;
@@ -504,4 +521,4 @@ public final class ProjeDosyaServisi {
                 + "        android:text=\"Buton Test\" />\n\n"
                 + "</LinearLayout>\n";
     }
-            }
+    }
