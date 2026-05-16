@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -16,22 +17,26 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.StringReader;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * XML önizleme yönetim modülü.
  *
  * Bu sınıf:
- * - basit Android XML layout metnini okur
- * - desteklenen widgetları gerçek Android View nesnesine çevirir
- * - LinearLayout, ScrollView, TextView, Button, EditText ve ImageView destekler
- * - hatalı XML durumunda hata görünümü üretir
+ * - basit Android XML layout metnini okur.
+ * - desteklenen widgetları gerçek Android View nesnesine çevirir.
+ * - iç içe LinearLayout ve ScrollView yapılarını destekler.
+ * - TextView, Button, EditText ve ImageView destekler.
+ * - android:text, android:hint, android:orientation ve temel renkleri okur.
+ * - hatalı XML durumunda hata görünümü üretir.
  *
  * Kural:
- * - APK derlemez
- * - dosya okuma/yazma yapmaz
- * - Java kodu çalıştırmaz
- * - Activity yönetmez
- * - sadece basit XML önizleme üretir
+ * - APK derlemez.
+ * - dosya okuma/yazma yapmaz.
+ * - Java kodu çalıştırmaz.
+ * - Activity yönetmez.
+ * - sadece basit XML önizleme üretir.
  */
 public final class XmlOnizlemeYoneticisi {
 
@@ -47,11 +52,15 @@ public final class XmlOnizlemeYoneticisi {
     ) {
 
         if (context == null) {
-            throw new IllegalArgumentException("Context null olamaz.");
+            throw new IllegalArgumentException(
+                    "Context null olamaz."
+            );
         }
 
         if (onizlemeAlani == null) {
-            throw new IllegalArgumentException("Önizleme alanı null olamaz.");
+            throw new IllegalArgumentException(
+                    "Önizleme alanı null olamaz."
+            );
         }
 
         this.context = context;
@@ -74,7 +83,10 @@ public final class XmlOnizlemeYoneticisi {
 
         try {
 
-            View kokView = xmlViewOlustur(xmlIcerik);
+            View kokView =
+                    xmlViewOlustur(
+                            xmlIcerik
+                    );
 
             onizlemeAlani.addView(
                     kokView,
@@ -85,7 +97,11 @@ public final class XmlOnizlemeYoneticisi {
             );
 
         } catch (Exception hata) {
-            hataGoster("XML önizleme hatası: " + hata.getMessage());
+
+            hataGoster(
+                    "XML önizleme hatası: "
+                            + hata.getMessage()
+            );
         }
     }
 
@@ -104,62 +120,76 @@ public final class XmlOnizlemeYoneticisi {
             String xmlIcerik
     ) throws Exception {
 
-        XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
-        factory.setNamespaceAware(false);
+        XmlPullParserFactory factory =
+                XmlPullParserFactory.newInstance();
 
-        XmlPullParser parser = factory.newPullParser();
-        parser.setInput(new StringReader(xmlIcerik));
+        factory.setNamespaceAware(true);
+
+        XmlPullParser parser =
+                factory.newPullParser();
+
+        parser.setInput(
+                new StringReader(
+                        xmlIcerik
+                )
+        );
 
         View kokView = null;
-        LinearLayout aktifLinearLayout = null;
-        ScrollView aktifScrollView = null;
 
-        int eventType = parser.getEventType();
+        Deque<ViewGroup> parentStack =
+                new ArrayDeque<>();
+
+        int eventType =
+                parser.getEventType();
 
         while (eventType != XmlPullParser.END_DOCUMENT) {
 
             if (eventType == XmlPullParser.START_TAG) {
 
-                String tag = parser.getName();
-                View yeniView = tagIcinViewOlustur(parser, tag);
+                String tag =
+                        parser.getName();
+
+                View yeniView =
+                        tagIcinViewOlustur(
+                                parser,
+                                tag
+                        );
 
                 if (yeniView != null) {
 
+                    layoutParametreleriniUygula(
+                            parser,
+                            yeniView
+                    );
+
                     if (kokView == null) {
                         kokView = yeniView;
-                    } else if (aktifLinearLayout != null) {
-                        aktifLinearLayout.addView(yeniView);
-                    } else if (aktifScrollView != null) {
-                        aktifScrollView.addView(yeniView);
+                    } else if (!parentStack.isEmpty()) {
+                        parentStack.peek().addView(yeniView);
                     }
 
-                    if (yeniView instanceof LinearLayout) {
-                        aktifLinearLayout = (LinearLayout) yeniView;
-                    }
-
-                    if (yeniView instanceof ScrollView) {
-                        aktifScrollView = (ScrollView) yeniView;
+                    if (yeniView instanceof ViewGroup) {
+                        parentStack.push(
+                                (ViewGroup) yeniView
+                        );
                     }
                 }
 
             } else if (eventType == XmlPullParser.END_TAG) {
 
-                String tag = parser.getName();
-
-                if ("LinearLayout".equals(tag)) {
-                    aktifLinearLayout = null;
-                }
-
-                if ("ScrollView".equals(tag)) {
-                    aktifScrollView = null;
+                if (!parentStack.isEmpty()) {
+                    parentStack.pop();
                 }
             }
 
-            eventType = parser.next();
+            eventType =
+                    parser.next();
         }
 
         if (kokView == null) {
-            throw new IllegalArgumentException("Desteklenen kök View bulunamadı.");
+            throw new IllegalArgumentException(
+                    "Desteklenen kök View bulunamadı."
+            );
         }
 
         return kokView;
@@ -175,6 +205,10 @@ public final class XmlOnizlemeYoneticisi {
 
         if ("LinearLayout".equals(tag)) {
             return linearLayoutOlustur(parser);
+        }
+
+        if ("FrameLayout".equals(tag)) {
+            return frameLayoutOlustur(parser);
         }
 
         if ("ScrollView".equals(tag)) {
@@ -207,12 +241,57 @@ public final class XmlOnizlemeYoneticisi {
             XmlPullParser parser
     ) {
 
-        LinearLayout layout = new LinearLayout(context);
-        layout.setOrientation(orientationGetir(parser));
-        layout.setPadding(24, 24, 24, 24);
-        layout.setBackgroundColor(Color.WHITE);
+        LinearLayout layout =
+                new LinearLayout(context);
+
+        layout.setOrientation(
+                orientationGetir(parser)
+        );
+
+        layout.setGravity(
+                gravityGetir(parser)
+        );
+
+        int padding =
+                dpToPx(12);
+
+        layout.setPadding(
+                padding,
+                padding,
+                padding,
+                padding
+        );
+
+        layout.setBackgroundColor(
+                renkGetir(
+                        parser,
+                        "background",
+                        Color.WHITE
+                )
+        );
 
         return layout;
+    }
+
+    /**
+     * FrameLayout üretir.
+     */
+    private FrameLayout frameLayoutOlustur(
+            XmlPullParser parser
+    ) {
+
+        FrameLayout frameLayout =
+                new FrameLayout(context);
+
+        frameLayout.setBackgroundColor(
+                renkGetir(
+                        parser,
+                        "background",
+                        Color.WHITE
+                )
+        );
+
+        return frameLayout;
     }
 
     /**
@@ -220,7 +299,9 @@ public final class XmlOnizlemeYoneticisi {
      */
     private ScrollView scrollViewOlustur() {
 
-        ScrollView scrollView = new ScrollView(context);
+        ScrollView scrollView =
+                new ScrollView(context);
+
         scrollView.setFillViewport(true);
 
         return scrollView;
@@ -233,11 +314,40 @@ public final class XmlOnizlemeYoneticisi {
             XmlPullParser parser
     ) {
 
-        TextView textView = new TextView(context);
-        textView.setText(textGetir(parser, "TextView"));
-        textView.setTextColor(Color.BLACK);
-        textView.setTextSize(16f);
-        textView.setPadding(12, 12, 12, 12);
+        TextView textView =
+                new TextView(context);
+
+        textView.setText(
+                textGetir(
+                        parser,
+                        "TextView"
+                )
+        );
+
+        textView.setTextColor(
+                renkGetir(
+                        parser,
+                        "textColor",
+                        Color.BLACK
+                )
+        );
+
+        textView.setTextSize(
+                yaziBoyutuGetir(
+                        parser,
+                        16f
+                )
+        );
+
+        int padding =
+                dpToPx(8);
+
+        textView.setPadding(
+                padding,
+                padding,
+                padding,
+                padding
+        );
 
         return textView;
     }
@@ -249,8 +359,15 @@ public final class XmlOnizlemeYoneticisi {
             XmlPullParser parser
     ) {
 
-        Button button = new Button(context);
-        button.setText(textGetir(parser, "Button"));
+        Button button =
+                new Button(context);
+
+        button.setText(
+                textGetir(
+                        parser,
+                        "Button"
+                )
+        );
 
         return button;
     }
@@ -262,8 +379,16 @@ public final class XmlOnizlemeYoneticisi {
             XmlPullParser parser
     ) {
 
-        EditText editText = new EditText(context);
-        editText.setHint(textGetir(parser, "EditText"));
+        EditText editText =
+                new EditText(context);
+
+        editText.setHint(
+                textGetir(
+                        parser,
+                        "EditText"
+                )
+        );
+
         editText.setSingleLine(false);
         editText.setMinLines(2);
 
@@ -275,11 +400,43 @@ public final class XmlOnizlemeYoneticisi {
      */
     private ImageView imageViewOlustur() {
 
-        ImageView imageView = new ImageView(context);
+        ImageView imageView =
+                new ImageView(context);
+
         imageView.setBackgroundColor(Color.LTGRAY);
-        imageView.setMinimumHeight(160);
+        imageView.setMinimumHeight(dpToPx(120));
 
         return imageView;
+    }
+
+    /**
+     * View layout parametrelerini uygular.
+     */
+    private void layoutParametreleriniUygula(
+            XmlPullParser parser,
+            View view
+    ) {
+
+        int width =
+                boyutGetir(
+                        parser,
+                        "layout_width",
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        int height =
+                boyutGetir(
+                        parser,
+                        "layout_height",
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                );
+
+        view.setLayoutParams(
+                new ViewGroup.LayoutParams(
+                        width,
+                        height
+                )
+        );
     }
 
     /**
@@ -289,16 +446,45 @@ public final class XmlOnizlemeYoneticisi {
             XmlPullParser parser
     ) {
 
-        String orientation = ozellikGetir(
-                parser,
-                "orientation"
-        );
+        String orientation =
+                ozellikGetir(
+                        parser,
+                        "orientation"
+                );
 
         if ("horizontal".equals(orientation)) {
             return LinearLayout.HORIZONTAL;
         }
 
         return LinearLayout.VERTICAL;
+    }
+
+    /**
+     * XML gravity değerini okur.
+     */
+    private int gravityGetir(
+            XmlPullParser parser
+    ) {
+
+        String gravity =
+                ozellikGetir(
+                        parser,
+                        "gravity"
+                );
+
+        if (gravity.contains("center")) {
+            return Gravity.CENTER;
+        }
+
+        if (gravity.contains("end")) {
+            return Gravity.END;
+        }
+
+        if (gravity.contains("right")) {
+            return Gravity.RIGHT;
+        }
+
+        return Gravity.START;
     }
 
     /**
@@ -309,14 +495,18 @@ public final class XmlOnizlemeYoneticisi {
             String varsayilan
     ) {
 
-        String text = ozellikGetir(parser, "text");
+        String text =
+                ozellikGetir(
+                        parser,
+                        "text"
+                );
 
         if (text.isEmpty()) {
-            text = ozellikGetir(parser, "hint");
-        }
-
-        if (text.startsWith("@string/")) {
-            return text;
+            text =
+                    ozellikGetir(
+                            parser,
+                            "hint"
+                    );
         }
 
         if (text.isEmpty()) {
@@ -327,6 +517,90 @@ public final class XmlOnizlemeYoneticisi {
     }
 
     /**
+     * Boyut değerini okur.
+     */
+    private int boyutGetir(
+            XmlPullParser parser,
+            String ad,
+            int varsayilan
+    ) {
+
+        String deger =
+                ozellikGetir(
+                        parser,
+                        ad
+                );
+
+        if ("match_parent".equals(deger)) {
+            return ViewGroup.LayoutParams.MATCH_PARENT;
+        }
+
+        if ("wrap_content".equals(deger)) {
+            return ViewGroup.LayoutParams.WRAP_CONTENT;
+        }
+
+        if (deger.endsWith("dp")) {
+            return dpToPx(
+                    sayiAyikla(
+                            deger
+                    )
+            );
+        }
+
+        return varsayilan;
+    }
+
+    /**
+     * XML renk değerini okur.
+     */
+    private int renkGetir(
+            XmlPullParser parser,
+            String ad,
+            int varsayilan
+    ) {
+
+        String deger =
+                ozellikGetir(
+                        parser,
+                        ad
+                );
+
+        if (!deger.startsWith("#")) {
+            return varsayilan;
+        }
+
+        try {
+
+            return Color.parseColor(deger);
+
+        } catch (IllegalArgumentException hata) {
+
+            return varsayilan;
+        }
+    }
+
+    /**
+     * Text size değerini okur.
+     */
+    private float yaziBoyutuGetir(
+            XmlPullParser parser,
+            float varsayilan
+    ) {
+
+        String deger =
+                ozellikGetir(
+                        parser,
+                        "textSize"
+                );
+
+        if (deger.endsWith("sp")) {
+            return sayiAyikla(deger);
+        }
+
+        return varsayilan;
+    }
+
+    /**
      * XML attribute değerini güvenli okur.
      */
     private String ozellikGetir(
@@ -334,13 +608,26 @@ public final class XmlOnizlemeYoneticisi {
             String ad
     ) {
 
-        String deger = parser.getAttributeValue(null, ad);
+        String deger =
+                parser.getAttributeValue(
+                        null,
+                        ad
+                );
 
         if (deger == null) {
-            deger = parser.getAttributeValue(
-                    "http://schemas.android.com/apk/res/android",
-                    ad
-            );
+            deger =
+                    parser.getAttributeValue(
+                            "http://schemas.android.com/apk/res/android",
+                            ad
+                    );
+        }
+
+        if (deger == null) {
+            deger =
+                    parser.getAttributeValue(
+                            null,
+                            "android:" + ad
+                    );
         }
 
         if (deger == null) {
@@ -351,18 +638,79 @@ public final class XmlOnizlemeYoneticisi {
     }
 
     /**
+     * Metinden sayı ayıklar.
+     */
+    private int sayiAyikla(
+            String deger
+    ) {
+
+        try {
+
+            return Math.round(
+                    Float.parseFloat(
+                            deger.replaceAll(
+                                    "[^0-9.]",
+                                    ""
+                            )
+                    )
+            );
+
+        } catch (NumberFormatException hata) {
+
+            return 0;
+        }
+    }
+
+    /**
+     * Dp değerini piksele çevirir.
+     */
+    private int dpToPx(
+            int dp
+    ) {
+
+        float density =
+                context.getResources()
+                        .getDisplayMetrics()
+                        .density;
+
+        if (density <= 0f) {
+            density = 1f;
+        }
+
+        return Math.round(
+                dp * density
+        );
+    }
+
+    /**
      * Önizleme alanında hata mesajı gösterir.
      */
     private void hataGoster(
             String mesaj
     ) {
 
-        TextView hataView = new TextView(context);
-        hataView.setText(mesaj == null ? "Bilinmeyen hata." : mesaj);
+        TextView hataView =
+                new TextView(context);
+
+        hataView.setText(
+                mesaj == null
+                        ? "Bilinmeyen hata."
+                        : mesaj
+        );
+
         hataView.setTextColor(Color.RED);
         hataView.setTextSize(14f);
         hataView.setGravity(Gravity.CENTER);
-        hataView.setPadding(24, 24, 24, 24);
+
+        int padding =
+                dpToPx(16);
+
+        hataView.setPadding(
+                padding,
+                padding,
+                padding,
+                padding
+        );
 
         onizlemeAlani.addView(
                 hataView,
@@ -372,4 +720,4 @@ public final class XmlOnizlemeYoneticisi {
                 )
         );
     }
-    }
+            }
