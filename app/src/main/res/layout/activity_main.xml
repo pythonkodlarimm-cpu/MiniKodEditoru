@@ -115,6 +115,17 @@
                 android:textColor="@color/metin_beyaz" />
 
             <Button
+                android:id="@+id/calistirButonu"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/buton_yukseklik"
+                android:layout_marginEnd="@dimen/padding_kucuk"
+                android:background="@drawable/button_background"
+                android:minWidth="110dp"
+                android:text="Çalıştır"
+                android:textAllCaps="false"
+                android:textColor="@color/metin_beyaz" />
+
+            <Button
                 android:id="@+id/klasorButonu"
                 android:layout_width="wrap_content"
                 android:layout_height="@dimen/buton_yukseklik"
@@ -164,19 +175,61 @@
             android:elevation="4dp"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/editorBaslik"
+            <LinearLayout
+                android:id="@+id/editorUstCubuk"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/topbar_background"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingStart="@dimen/padding_buyuk"
-                android:paddingTop="@dimen/padding_normal"
+                android:paddingTop="@dimen/padding_kucuk"
                 android:paddingEnd="@dimen/padding_buyuk"
-                android:paddingBottom="@dimen/padding_normal"
-                android:text="Kod Editörü"
-                android:textColor="@color/metin_beyaz"
-                android:textSize="@dimen/yazi_normal"
-                android:textStyle="bold" />
+                android:paddingBottom="@dimen/padding_kucuk">
+
+                <TextView
+                    android:id="@+id/editorBaslik"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Kod Editörü"
+                    android:textColor="@color/metin_beyaz"
+                    android:textSize="@dimen/yazi_normal"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/editorKopyalaButonu"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/buton_yukseklik"
+                    android:layout_marginEnd="@dimen/padding_cok_kucuk"
+                    android:background="@drawable/button_background"
+                    android:minWidth="72dp"
+                    android:text="Kopyala"
+                    android:textAllCaps="false"
+                    android:textColor="@color/metin_beyaz" />
+
+                <Button
+                    android:id="@+id/editorYapistirButonu"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/buton_yukseklik"
+                    android:layout_marginEnd="@dimen/padding_cok_kucuk"
+                    android:background="@drawable/button_background"
+                    android:minWidth="72dp"
+                    android:text="Yapıştır"
+                    android:textAllCaps="false"
+                    android:textColor="@color/metin_beyaz" />
+
+                <Button
+                    android:id="@+id/editorTemizleButonu"
+                    android:layout_width="wrap_content"
+                    android:layout_height="@dimen/buton_yukseklik"
+                    android:background="@drawable/button_background"
+                    android:minWidth="72dp"
+                    android:text="Sil"
+                    android:textAllCaps="false"
+                    android:textColor="@color/metin_beyaz" />
+
+            </LinearLayout>
 
             <EditText
                 android:id="@+id/kodEditoru"
