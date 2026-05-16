@@ -89,7 +89,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf .gradle app/build build dist_artifacts play_console_upload secure
+          rm -rf .gradle app/build build dist_artifacts secure
           rm -rf ~/.gradle/caches ~/.gradle/daemon ~/.gradle/native
           echo "Cache temizlendi." | tee early_diagnostics/cache_temizleme.txt
 
@@ -157,17 +157,13 @@ jobs:
             kontrol_et build.gradle
             kontrol_et app/build.gradle
             kontrol_et app/proguard-rules.pro
-
             kontrol_et app/src/main/AndroidManifest.xml
             kontrol_et app/src/main/java/org/fy/kodeditoru/MainActivity.java
             kontrol_et app/src/main/java/org/fy/kodeditoru/SplashActivity.java
-
             kontrol_et app/src/main/res/layout/activity_main.xml
-
             kontrol_et app/src/main/res/values/themes.xml
             kontrol_et app/src/main/res/values/colors.xml
             kontrol_et app/src/main/res/values/dimens.xml
-
             kontrol_et app/src/main/res/drawable/splash_background.xml
             kontrol_et app/src/main/res/drawable/card_background.xml
             kontrol_et app/src/main/res/drawable/button_background.xml
@@ -196,43 +192,18 @@ jobs:
             exit 1
           fi
 
-          if [ -z "${KEYSTORE_PASSWORD:-}" ]; then
-            echo "HATA: ANDROID_KEYSTORE_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
-            exit 1
-          fi
-
-          if [ -z "${KEY_ALIAS:-}" ]; then
-            echo "HATA: ANDROID_KEY_ALIAS secret boş." | tee early_diagnostics/keystore_hatasi.txt
-            exit 1
-          fi
-
-          if [ -z "${KEY_ALIAS_PASSWORD:-}" ]; then
-            echo "HATA: ANDROID_KEY_ALIAS_PASSWORD secret boş." | tee early_diagnostics/keystore_hatasi.txt
-            exit 1
-          fi
-
           printf '%s' "$KEYSTORE_BASE64" > secure/release.keystore.base64
 
           if ! base64 --decode secure/release.keystore.base64 > secure/release.keystore 2> early_diagnostics/keystore_base64_decode_hatasi.txt; then
-            {
-              echo "HATA: ANDROID_KEYSTORE_BASE64 çözülemedi."
-              echo ""
-              echo "Muhtemel sebepler:"
-              echo "1. Secret eksik kopyalandı."
-              echo "2. Base64 çıktısı tek satır değil."
-              echo "3. Yanlış dosyanın base64 çıktısı girildi."
-              echo "4. Secret içine fazladan açıklama/boşluk/komut çıktısı karıştı."
-              echo ""
-              echo "Ubuntu doğru komut:"
-              echo "base64 -w 0 release.keystore"
-            } | tee early_diagnostics/keystore_hatasi.txt
+            echo "HATA: ANDROID_KEYSTORE_BASE64 çözülemedi." | tee early_diagnostics/keystore_hatasi.txt
+            echo "Ubuntu doğru komut: base64 -w 0 release.keystore" | tee -a early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
           rm -f secure/release.keystore.base64
 
           if [ ! -s secure/release.keystore ]; then
-            echo "HATA: release.keystore boş oluştu. ANDROID_KEYSTORE_BASE64 bozuk olabilir." | tee early_diagnostics/keystore_hatasi.txt
+            echo "HATA: release.keystore boş oluştu." | tee early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
@@ -243,12 +214,7 @@ jobs:
           echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
           echo "ANDROID_KEY_ALIAS_PASSWORD=$KEY_ALIAS_PASSWORD" >> "$GITHUB_ENV"
 
-          {
-            echo "Keystore dosyası oluşturuldu."
-            echo "Keystore path: ${GITHUB_WORKSPACE}/secure/release.keystore"
-            echo "Keystore size:"
-            ls -lh secure/release.keystore
-          } | tee early_diagnostics/keystore_olusturma.txt
+          ls -lh secure/release.keystore | tee early_diagnostics/keystore_olusturma.txt
 
       - name: Keystore doğrula
         shell: bash
@@ -260,23 +226,7 @@ jobs:
             -storepass "$ANDROID_KEYSTORE_PASSWORD" \
             -alias "$ANDROID_KEY_ALIAS" 2>&1 | tee early_diagnostics/keystore_dogrulama.txt; then
 
-            {
-              echo ""
-              echo "HATA: Keystore doğrulanamadı."
-              echo ""
-              echo "Muhtemel sebepler:"
-              echo "1. ANDROID_KEYSTORE_PASSWORD yanlış."
-              echo "2. ANDROID_KEY_ALIAS yanlış."
-              echo "3. ANDROID_KEYSTORE_BASE64 yanlış keystore dosyasından üretildi."
-              echo "4. Secret içine base64 çıktısı eksik/bozuk yapıştırıldı."
-              echo ""
-              echo "Ubuntu base64 üretim:"
-              echo "base64 -w 0 release.keystore"
-              echo ""
-              echo "Alias kontrol:"
-              echo "keytool -list -v -keystore release.keystore"
-            } | tee -a early_diagnostics/keystore_hatasi.txt
-
+            echo "HATA: Keystore doğrulanamadı. Şifre, alias veya Base64 yanlış." | tee -a early_diagnostics/keystore_hatasi.txt
             exit 1
           fi
 
@@ -316,20 +266,7 @@ jobs:
           set -euxo pipefail
 
           if ! $GRADLE_CMD :app:bundleRelease --stacktrace --info 2>&1 | tee build_aab.log; then
-            {
-              echo ""
-              echo "HATA: :app:bundleRelease başarısız oldu."
-              echo ""
-              echo "Muhtemel sebepler:"
-              echo "1. Java compile hatası."
-              echo "2. XML resource hatası."
-              echo "3. AndroidManifest.xml hatası."
-              echo "4. app/build.gradle signingConfig hatası."
-              echo "5. drawable/color/dimen kaynak adı hatası."
-              echo "6. Eksik proguard-rules.pro dosyası."
-              echo ""
-              echo "Ayrıntı: build_aab.log"
-            } | tee early_diagnostics/gradle_build_hatasi.txt
+            echo "HATA: :app:bundleRelease başarısız oldu. Ayrıntı: build_aab.log" | tee early_diagnostics/gradle_build_hatasi.txt
             exit 1
           fi
 
@@ -337,8 +274,7 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p dist_artifacts
-          mkdir -p play_console_upload
+          mkdir -p dist_artifacts/aab
 
           AAB_PATH="$(find app/build/outputs/bundle -type f -name '*.aab' | sort | head -n 1)"
 
@@ -347,85 +283,73 @@ jobs:
             exit 1
           fi
 
-          cp "$AAB_PATH" "dist_artifacts/mini-kod-editoru-${APP_VERSION}.aab"
-          cp "$AAB_PATH" "play_console_upload/mini-kod-editoru-${APP_VERSION}.aab"
-
-          ls -lh dist_artifacts | tee early_diagnostics/aab_cikti_listesi.txt
-          ls -lh play_console_upload | tee early_diagnostics/play_console_yukleme_listesi.txt
+          cp "$AAB_PATH" "dist_artifacts/aab/mini-kod-editoru-${APP_VERSION}.aab"
+          ls -lh dist_artifacts/aab | tee early_diagnostics/aab_cikti_listesi.txt
 
       - name: AAB imzasını doğrula
         shell: bash
         run: |
           set -euxo pipefail
-          AAB_PATH="dist_artifacts/mini-kod-editoru-${APP_VERSION}.aab"
+          AAB_PATH="dist_artifacts/aab/mini-kod-editoru-${APP_VERSION}.aab"
 
           if ! jarsigner -verify -verbose -certs "$AAB_PATH" 2>&1 | tee early_diagnostics/aab_imza_dogrula.txt; then
-            {
-              echo ""
-              echo "HATA: AAB imza doğrulaması başarısız."
-              echo ""
-              echo "Muhtemel sebepler:"
-              echo "1. signingConfig release doğru bağlanmadı."
-              echo "2. Keystore bilgileri yanlış."
-              echo "3. AAB dosyası bozuk oluştu."
-            } | tee early_diagnostics/aab_imza_hatasi.txt
+            echo "HATA: AAB imza doğrulaması başarısız." | tee early_diagnostics/aab_imza_hatasi.txt
             exit 1
           fi
 
-      - name: AAB manifest ve kaynak dosyalarını çıkar
+      - name: ReTrace eşleşme dosyasını hazırla
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p play_console_upload/aab_inspect
-          AAB_PATH="dist_artifacts/mini-kod-editoru-${APP_VERSION}.aab"
+          mkdir -p dist_artifacts/retrace-mapping
 
-          unzip -l "$AAB_PATH" | tee play_console_upload/aab_file_list.txt
-          unzip -q "$AAB_PATH" -d play_console_upload/aab_inspect
-          find play_console_upload/aab_inspect -maxdepth 5 -type f | sort | tee play_console_upload/aab_extracted_files.txt
+          if [ -f app/build/outputs/mapping/release/mapping.txt ]; then
+            cp app/build/outputs/mapping/release/mapping.txt "dist_artifacts/retrace-mapping/mapping-${APP_VERSION}.txt"
+          else
+            echo "mapping.txt bulunamadı. minifyEnabled true değilse veya release build tamamlanmadıysa bu normaldir." \
+              > dist_artifacts/retrace-mapping/mapping-yok.txt
+          fi
 
-      - name: Play Console belge paketi hazırla
+          find app/build/outputs/mapping/release -type f -print -exec cp {} dist_artifacts/retrace-mapping/ \; || true
+          ls -la dist_artifacts/retrace-mapping | tee early_diagnostics/retrace_mapping_listesi.txt
+
+      - name: Yerel hata ayıklama sembollerini hazırla
+        if: ${{ always() }}
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p play_console_upload/reports
+          mkdir -p dist_artifacts/native-debug-symbols/raw
 
-          cp early_diagnostics/aab_imza_dogrula.txt play_console_upload/reports/aab_imza_dogrula.txt
-          cp early_diagnostics/aab_cikti_listesi.txt play_console_upload/reports/aab_cikti_listesi.txt
-          cp early_diagnostics/repo_dosya_kontrolu.txt play_console_upload/reports/repo_dosya_kontrolu.txt
-          cp early_diagnostics/gradle_bilgisi.txt play_console_upload/reports/gradle_bilgisi.txt
-          cp early_diagnostics/keystore_dogrulama.txt play_console_upload/reports/keystore_dogrulama.txt
-          cp build_aab.log play_console_upload/reports/build_aab.log
-          cp env_dump.txt play_console_upload/reports/env_dump.txt
-          cp sdk_list.txt play_console_upload/reports/sdk_list.txt
+          find . -type f -name "*.so" \
+            ! -path "./.git/*" \
+            ! -path "./dist_artifacts/*" \
+            | sort | tee early_diagnostics/native_so_listesi.txt || true
 
-          {
-            echo "# Play Console Yükleme Paketi"
-            echo ""
-            echo "Uygulama: Mini Kod Editörü"
-            echo "Package: org.fy.kodeditoru"
-            echo "Version Name: ${APP_VERSION}"
-            echo "Version Code: ${APP_VERSION_CODE}"
-            echo "Min SDK: ${ANDROIDMINAPI}"
-            echo "Target SDK: ${ANDROIDAPI}"
-            echo ""
-            echo "## Yüklenecek ana dosya"
-            echo "mini-kod-editoru-${APP_VERSION}.aab"
-            echo ""
-            echo "## Ek belgeler"
-            echo "- reports/aab_imza_dogrula.txt"
-            echo "- reports/aab_cikti_listesi.txt"
-            echo "- reports/repo_dosya_kontrolu.txt"
-            echo "- reports/gradle_bilgisi.txt"
-            echo "- reports/keystore_dogrulama.txt"
-            echo "- reports/build_aab.log"
-            echo "- aab_file_list.txt"
-            echo "- aab_extracted_files.txt"
-          } > play_console_upload/README_PLAY_CONSOLE.txt
+          if [ -s early_diagnostics/native_so_listesi.txt ]; then
+            while IFS= read -r sofile; do
+              abi="unknown"
+              case "$sofile" in
+                *"/arm64-v8a/"*) abi="arm64-v8a" ;;
+                *"/armeabi-v7a/"*) abi="armeabi-v7a" ;;
+                *"/x86_64/"*) abi="x86_64" ;;
+                *"/x86/"*) abi="x86" ;;
+              esac
 
-          (
-            cd play_console_upload
-            zip -r "../dist_artifacts/play-console-belgeleri-${APP_VERSION}.zip" .
-          )
+              mkdir -p "dist_artifacts/native-debug-symbols/raw/${abi}"
+              cp "$sofile" "dist_artifacts/native-debug-symbols/raw/${abi}/$(basename "$sofile")"
+            done < early_diagnostics/native_so_listesi.txt
+
+            (
+              cd dist_artifacts/native-debug-symbols/raw
+              zip -r "../native-debug-symbols-${APP_VERSION}.zip" .
+            )
+          else
+            echo "Native .so bulunamadı. Saf Java/XML projede bu normaldir." \
+              > dist_artifacts/native-debug-symbols/native-symbols-yok.txt
+          fi
+
+          find dist_artifacts/native-debug-symbols -type f | sort | tee early_diagnostics/native_debug_symbols_listesi.txt
 
       - name: Build çıktıları listele
         if: ${{ always() }}
@@ -434,13 +358,13 @@ jobs:
           set -euxo pipefail
           {
             echo "===== AAB ====="
-            find app/build/outputs/bundle -type f -name "*.aab" -print || true
+            find dist_artifacts/aab -type f -print || true
             echo ""
-            echo "===== DIST ====="
-            find dist_artifacts -type f -print || true
+            echo "===== RETRACE MAPPING ====="
+            find dist_artifacts/retrace-mapping -type f -print || true
             echo ""
-            echo "===== PLAY CONSOLE UPLOAD ====="
-            find play_console_upload -type f -print || true
+            echo "===== NATIVE DEBUG SYMBOLS ====="
+            find dist_artifacts/native-debug-symbols -type f -print || true
             echo ""
             echo "===== EARLY DIAGNOSTICS ====="
             find early_diagnostics -type f -print || true
@@ -489,21 +413,6 @@ jobs:
               output.append("Build erken aşamada durmuş olabilir. early_diagnostics klasörünü kontrol et.")
               output.append("```")
 
-          output.extend(["", "## Kontrol edilecek dosyalar", "```text"])
-          output.append("MiniKodEditoru/app/build.gradle")
-          output.append("MiniKodEditoru/app/proguard-rules.pro")
-          output.append("MiniKodEditoru/.github/workflows/android.yml")
-          output.append("GitHub Secrets:")
-          output.append("- ANDROID_KEYSTORE_BASE64")
-          output.append("- ANDROID_KEYSTORE_PASSWORD")
-          output.append("- ANDROID_KEY_ALIAS")
-          output.append("- ANDROID_KEY_ALIAS_PASSWORD")
-          output.append("```")
-
-          for early_file in sorted(Path("early_diagnostics").glob("*.txt")):
-              text = oku(early_file)
-              output.extend(["", f"## {early_file}", "```text", text[:18000], "```"])
-
           Path("summary.md").write_text("\n".join(output), encoding="utf-8")
           PY
 
@@ -513,45 +422,7 @@ jobs:
         run: |
           cat summary.md >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Gradle Android özetini çıkar
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          def oku(dosya):
-              p = Path(dosya)
-              if not p.exists():
-                  return ""
-              return p.read_text(encoding="utf-8", errors="ignore")
-
-          sections = []
-          sections.append("## Erken teşhis dosyaları\n\n```text\n" + "\n".join(str(p) for p in sorted(Path("early_diagnostics").glob("*.txt"))) + "\n```")
-
-          for early_file in sorted(Path("early_diagnostics").glob("*.txt")):
-              text = oku(early_file)
-              sections.append(f"## {early_file}\n\n```text\n{text[:18000]}\n```")
-
-          for file_name, title in [
-              ("play_console_upload/README_PLAY_CONSOLE.txt", "Play Console paket açıklaması"),
-              ("play_console_upload/aab_file_list.txt", "AAB dosya listesi"),
-              ("play_console_upload/aab_extracted_files.txt", "AAB çıkarılmış dosya listesi"),
-          ]:
-              text = oku(file_name)
-              if text:
-                  sections.append(f"## {title}\n\n```text\n{text[:18000]}\n```")
-
-          Path("gradle_android_summary.md").write_text("\n\n".join(sections), encoding="utf-8")
-          PY
-
-      - name: Gradle Android özetini GitHub Summary'ye yaz
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          cat gradle_android_summary.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Build log ve teşhis dosyalarını yükle
+      - name: Teşhis dosyalarını yükle
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
@@ -561,25 +432,30 @@ jobs:
             build_clean.log
             build_aab.log
             summary.md
-            gradle_android_summary.md
             env_dump.txt
             sdk_list.txt
-            play_console_upload/**
-            dist_artifacts/play-console-belgeleri-${{ env.APP_VERSION }}.zip
           if-no-files-found: warn
 
-      - name: Play Console AAB yükle
+      - name: AAB yükle
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
           name: play-console-aab-${{ env.APP_VERSION }}
-          path: play_console_upload/*.aab
+          path: dist_artifacts/aab/*.aab
           if-no-files-found: error
 
-      - name: Play Console belgeleri yükle
-        if: ${{ success() }}
+      - name: ReTrace eşleşme dosyasını yükle
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: play-console-belgeleri-${{ env.APP_VERSION }}
-          path: dist_artifacts/play-console-belgeleri-${{ env.APP_VERSION }}.zip
-          if-no-files-found: error
+          name: retrace-mapping-${{ env.APP_VERSION }}
+          path: dist_artifacts/retrace-mapping/**
+          if-no-files-found: warn
+
+      - name: Yerel hata ayıklama sembollerini yükle
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-debug-symbols-${{ env.APP_VERSION }}
+          path: dist_artifacts/native-debug-symbols/**
+          if-no-files-found: warn
