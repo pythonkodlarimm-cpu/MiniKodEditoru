@@ -33,7 +33,7 @@ import java.util.List;
  *
  * Bu sınıf:
  * - XML ekran bileşenlerini Java tarafına bağlar.
- * - akıllı ekran ölçülerini uygular.
+ * - ekran ölçülerini uygular.
  * - güvenli ekran alanı yöneticisini başlatır.
  * - editör yöneticisini başlatır.
  * - XML önizleme yöneticisini başlatır.
@@ -42,7 +42,7 @@ import java.util.List;
  * - proje bilgi penceresini açar.
  * - çalıştır önizlemesini başlatır.
  * - editör kopyala/yapıştır/temizle araçlarını yönetir.
- * - kullanıcı aksiyonlarını Android/data uygulama alanındaki log dosyasına yazar.
+ * - kullanıcı aksiyonlarını Android/data log dosyasına yazar.
  *
  * Kural:
  * - APK derlemez.
@@ -134,10 +134,11 @@ public final class AnaEkranKurucu {
 
         editorYoneticisi = new EditorYoneticisi(kodEditoru);
 
-        xmlOnizlemeYoneticisi = new XmlOnizlemeYoneticisi(
-                activity,
-                onizlemeAlani
-        );
+        xmlOnizlemeYoneticisi =
+                new XmlOnizlemeYoneticisi(
+                        activity,
+                        onizlemeAlani
+                );
 
         safeAreaYoneticisi =
                 new SafeAreaYoneticisi(
@@ -204,19 +205,8 @@ public final class AnaEkranKurucu {
 
         int padding = olcek.kartPaddingPx();
 
-        editorKart.setPadding(
-                padding,
-                padding,
-                padding,
-                padding
-        );
-
-        onizlemeKart.setPadding(
-                padding,
-                padding,
-                padding,
-                padding
-        );
+        editorKart.setPadding(padding, padding, padding, padding);
+        onizlemeKart.setPadding(padding, padding, padding, padding);
     }
 
     /**
@@ -304,9 +294,7 @@ public final class AnaEkranKurucu {
      */
     private void yeniOgePenceresiAc() {
 
-        LinearLayout panel =
-                new LinearLayout(activity);
-
+        LinearLayout panel = new LinearLayout(activity);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(
                 olcek.dpToPx(20),
@@ -315,45 +303,21 @@ public final class AnaEkranKurucu {
                 olcek.dpToPx(4)
         );
 
-        TextView bilgi =
-                new TextView(activity);
-
+        TextView bilgi = new TextView(activity);
         bilgi.setText("Dosya adını yaz ve tür seç.");
         bilgi.setTextSize(14f);
         bilgi.setTextColor(Color.DKGRAY);
 
-        EditText adInput =
-                new EditText(activity);
-
+        EditText adInput = new EditText(activity);
         adInput.setHint("Örnek: activity_login veya MainActivity");
         adInput.setSingleLine(true);
 
-        RadioGroup turGrubu =
-                new RadioGroup(activity);
-
+        RadioGroup turGrubu = new RadioGroup(activity);
         turGrubu.setOrientation(RadioGroup.VERTICAL);
 
-        RadioButton xml =
-                radioButonOlustur(
-                        "XML layout dosyası",
-                        TUR_XML_ID
-                );
-
-        RadioButton java =
-                radioButonOlustur(
-                        "Java sınıfı",
-                        TUR_JAVA_ID
-                );
-
-        RadioButton kotlin =
-                radioButonOlustur(
-                        "Kotlin sınıfı",
-                        TUR_KOTLIN_ID
-                );
-
-        turGrubu.addView(xml);
-        turGrubu.addView(java);
-        turGrubu.addView(kotlin);
+        turGrubu.addView(radioButonOlustur("XML layout dosyası", TUR_XML_ID));
+        turGrubu.addView(radioButonOlustur("Java sınıfı", TUR_JAVA_ID));
+        turGrubu.addView(radioButonOlustur("Kotlin sınıfı", TUR_KOTLIN_ID));
         turGrubu.check(TUR_XML_ID);
 
         panel.addView(bilgi);
@@ -392,28 +356,11 @@ public final class AnaEkranKurucu {
                             : girilenAd.trim();
 
             if (secilenTurId == TUR_JAVA_ID) {
-
-                aktifDosya =
-                        projeDosyaServisi.javaDosyasiOlustur(
-                                aktifProje,
-                                dosyaAdi
-                        );
-
+                aktifDosya = projeDosyaServisi.javaDosyasiOlustur(aktifProje, dosyaAdi);
             } else if (secilenTurId == TUR_KOTLIN_ID) {
-
-                aktifDosya =
-                        projeDosyaServisi.kotlinDosyasiOlustur(
-                                aktifProje,
-                                dosyaAdi
-                        );
-
+                aktifDosya = projeDosyaServisi.kotlinDosyasiOlustur(aktifProje, dosyaAdi);
             } else {
-
-                aktifDosya =
-                        projeDosyaServisi.xmlDosyasiOlustur(
-                                aktifProje,
-                                dosyaAdi
-                        );
+                aktifDosya = projeDosyaServisi.xmlDosyasiOlustur(aktifProje, dosyaAdi);
             }
 
             aktifProje.aktifDosyaAyarla(aktifDosya);
@@ -439,7 +386,7 @@ public final class AnaEkranKurucu {
 
         if (icerik.trim().isEmpty()) {
             mesajGoster("Kaydedilecek kod yok.");
-            logYaz("Kaydet butonu çalıştı: içerik boş.");
+            logYaz("Kaydet iptal: içerik boş.");
             return;
         }
 
@@ -451,10 +398,7 @@ public final class AnaEkranKurucu {
 
         try {
 
-            projeDosyaServisi.dosyaKaydet(
-                    aktifDosya,
-                    icerik
-            );
+            projeDosyaServisi.dosyaKaydet(aktifDosya, icerik);
 
             dosyaYoluMetni.setText(aktifDosya.getTamYol());
             durumRozeti.setText("Kaydedildi");
@@ -478,7 +422,7 @@ public final class AnaEkranKurucu {
 
         if (xml.trim().isEmpty()) {
             mesajGoster("Önizleme için XML kodu yaz.");
-            logYaz("Önizle butonu çalıştı: içerik boş.");
+            logYaz("Önizle iptal: içerik boş.");
             return;
         }
 
@@ -494,8 +438,7 @@ public final class AnaEkranKurucu {
      */
     private void calistir() {
 
-        String icerik =
-                editorYoneticisi.icerikGetir();
+        String icerik = editorYoneticisi.icerikGetir();
 
         if (icerik.trim().isEmpty()) {
             mesajGoster("Çalıştırmak için kod yaz.");
@@ -526,8 +469,7 @@ public final class AnaEkranKurucu {
             return;
         }
 
-        StringBuilder builder =
-                new StringBuilder();
+        StringBuilder builder = new StringBuilder();
 
         builder.append("Proje: ")
                 .append(aktifProje.getProjeAdi())
@@ -553,6 +495,7 @@ public final class AnaEkranKurucu {
                         "İlk XML’i Aç",
                         (dialog, which) -> {
                             aktifXmlDosyasiniSec();
+
                             try {
                                 aktifDosyayiEditoreYukle();
                             } catch (IOException hata) {
@@ -573,8 +516,7 @@ public final class AnaEkranKurucu {
      */
     private void editorIceriginiKopyala() {
 
-        String icerik =
-                editorYoneticisi.icerikGetir();
+        String icerik = editorYoneticisi.icerikGetir();
 
         if (icerik.trim().isEmpty()) {
             mesajGoster("Kopyalanacak içerik yok.");
@@ -582,9 +524,7 @@ public final class AnaEkranKurucu {
         }
 
         ClipboardManager clipboardManager =
-                (ClipboardManager) activity.getSystemService(
-                        Context.CLIPBOARD_SERVICE
-                );
+                (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
 
         if (clipboardManager == null) {
             mesajGoster("Pano kullanılamıyor.");
@@ -608,9 +548,7 @@ public final class AnaEkranKurucu {
     private void editoreYapistir() {
 
         ClipboardManager clipboardManager =
-                (ClipboardManager) activity.getSystemService(
-                        Context.CLIPBOARD_SERVICE
-                );
+                (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
 
         if (clipboardManager == null
                 || !clipboardManager.hasPrimaryClip()
@@ -631,17 +569,9 @@ public final class AnaEkranKurucu {
             return;
         }
 
-        int baslangic =
-                Math.max(
-                        kodEditoru.getSelectionStart(),
-                        0
-                );
+        int baslangic = Math.max(kodEditoru.getSelectionStart(), 0);
 
-        kodEditoru.getText()
-                .insert(
-                        baslangic,
-                        metin
-                );
+        kodEditoru.getText().insert(baslangic, metin);
 
         mesajGoster("Pano içeriği yapıştırıldı.");
         logYaz("Pano içeriği editöre yapıştırıldı.");
@@ -678,8 +608,7 @@ public final class AnaEkranKurucu {
             return;
         }
 
-        List<DosyaModeli> xmlDosyalari =
-                aktifProje.xmlDosyalari();
+        List<DosyaModeli> xmlDosyalari = aktifProje.xmlDosyalari();
 
         if (!xmlDosyalari.isEmpty()) {
             aktifDosya = xmlDosyalari.get(0);
@@ -704,10 +633,7 @@ public final class AnaEkranKurucu {
             return;
         }
 
-        String icerik =
-                projeDosyaServisi.dosyaOku(
-                        aktifDosya
-                );
+        String icerik = projeDosyaServisi.dosyaOku(aktifDosya);
 
         kodEditoru.setText(icerik);
         dosyaYoluMetni.setText(aktifDosya.getTamYol());
@@ -742,8 +668,7 @@ public final class AnaEkranKurucu {
             int turId
     ) {
 
-        long zaman =
-                System.currentTimeMillis();
+        long zaman = System.currentTimeMillis();
 
         if (turId == TUR_JAVA_ID) {
             return "JavaSinifi_" + zaman + ".java";
@@ -764,8 +689,7 @@ public final class AnaEkranKurucu {
             int id
     ) {
 
-        RadioButton radioButton =
-                new RadioButton(activity);
+        RadioButton radioButton = new RadioButton(activity);
 
         radioButton.setId(id);
         radioButton.setText(metin);
