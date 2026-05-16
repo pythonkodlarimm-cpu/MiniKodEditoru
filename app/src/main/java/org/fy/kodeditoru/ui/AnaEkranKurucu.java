@@ -21,7 +21,7 @@ import org.fy.kodeditoru.preview.XmlOnizlemeYoneticisi;
  * Bu sınıf:
  * - XML ekran bileşenlerini Java tarafına bağlar.
  * - akıllı ekran ölçülerini uygular.
- * - klavye ve sistem güvenli alanlarını uygular.
+ * - güvenli ekran alanı yöneticisini başlatır.
  * - editör yöneticisini başlatır.
  * - XML önizleme yöneticisini başlatır.
  * - üst buton davranışlarını bağlar.
@@ -37,7 +37,7 @@ public final class AnaEkranKurucu {
 
     private final Activity activity;
     private final EkranOlcekYoneticisi olcek;
-    private final KlavyeInsetsYoneticisi klavyeInsetsYoneticisi;
+    private final SafeAreaYoneticisi safeAreaYoneticisi;
     private final LogYoneticisi logYoneticisi;
 
     private final LinearLayout kokAlan;
@@ -103,10 +103,11 @@ public final class AnaEkranKurucu {
                 onizlemeAlani
         );
 
-        klavyeInsetsYoneticisi = new KlavyeInsetsYoneticisi(
-                activity,
-                kokAlan
-        );
+        safeAreaYoneticisi =
+                new SafeAreaYoneticisi(
+                        activity,
+                        kokAlan
+                );
 
         arayuzuYapilandir();
     }
@@ -131,7 +132,7 @@ public final class AnaEkranKurucu {
         editoruYapilandir();
         cihazSinifiniUygula();
 
-        klavyeInsetsYoneticisi.baslat();
+        safeAreaYoneticisi.baslat();
 
         logYaz("Ana ekran yapılandırıldı.");
         logYaz("Log dosyası: " + logYoneticisi.logDosyaYoluGetir());
@@ -236,9 +237,6 @@ public final class AnaEkranKurucu {
 
     /**
      * Kaydet davranışını çalıştırır.
-     *
-     * Not:
-     * Şu an gerçek dosya yazma servisi bağlı değildir.
      */
     private void kaydet() {
 
@@ -254,10 +252,7 @@ public final class AnaEkranKurucu {
         durumRozeti.setText("Kayıt");
 
         mesajGoster("Kod geçici olarak hazırlandı.");
-        logYaz(
-                "Kaydet butonu çalıştı. Karakter sayısı: "
-                + icerik.length()
-        );
+        logYaz("Kaydet butonu çalıştı. Karakter sayısı: " + icerik.length());
     }
 
     /**
@@ -277,10 +272,7 @@ public final class AnaEkranKurucu {
         durumRozeti.setText("Önizleme");
 
         mesajGoster("Önizleme güncellendi.");
-        logYaz(
-                "Önizle butonu çalıştı. Karakter sayısı: "
-                + xml.length()
-        );
+        logYaz("Önizle butonu çalıştı. Karakter sayısı: " + xml.length());
     }
 
     /**
@@ -369,4 +361,11 @@ public final class AnaEkranKurucu {
     public XmlOnizlemeYoneticisi getXmlOnizlemeYoneticisi() {
         return xmlOnizlemeYoneticisi;
     }
-            }
+
+    /**
+     * Güvenli alan yöneticisini döndürür.
+     */
+    public SafeAreaYoneticisi getSafeAreaYoneticisi() {
+        return safeAreaYoneticisi;
+    }
+    }
