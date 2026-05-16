@@ -3,6 +3,7 @@ package org.fy.kodeditoru.ui;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -30,8 +31,9 @@ import java.util.Comparator;
  * - dosya kaydetmez.
  * - dosya silmez.
  * - dosya taşımaz.
- * - APK derlemez.
+ * - proje seçmez.
  * - runtime başlatmaz.
+ * - sadece dosya seçme ekranı üretir.
  */
 public final class DosyaAgaciEkrani {
 
@@ -124,7 +126,7 @@ public final class DosyaAgaciEkrani {
     }
 
     /**
-     * Klasör ağacını recursive olarak listeye ekler.
+     * Klasör ağacını listeye ekler.
      */
     private void agaciEkle(
             LinearLayout liste,
@@ -154,7 +156,10 @@ public final class DosyaAgaciEkrani {
                 ogeler,
                 Comparator
                         .comparing(File::isFile)
-                        .thenComparing(File::getName, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(
+                                File::getName,
+                                String.CASE_INSENSITIVE_ORDER
+                        )
         );
 
         for (File oge : ogeler) {
@@ -178,36 +183,34 @@ public final class DosyaAgaciEkrani {
                         dialog
                 );
 
-            } else {
-
-                TextView satir =
-                        dosyaSatiriOlustur(
-                                kokKlasor,
-                                oge,
-                                seviye
-                        );
-
-                satir.setOnClickListener(v -> {
-
-                    if (dinleyici != null) {
-                        dinleyici.dosyaSecildi(
-                                new DosyaModeli(
-                                        oge
-                                )
-                        );
-                    }
-
-                    Toast.makeText(
-                            activity,
-                            "Açılan dosya: " + oge.getName(),
-                            Toast.LENGTH_SHORT
-                    ).show();
-
-                    dialog.dismiss();
-                });
-
-                liste.addView(satir);
+                continue;
             }
+
+            TextView satir =
+                    dosyaSatiriOlustur(
+                            kokKlasor,
+                            oge,
+                            seviye
+                    );
+
+            satir.setOnClickListener(v -> {
+
+                if (dinleyici != null) {
+                    dinleyici.dosyaSecildi(
+                            new DosyaModeli(oge)
+                    );
+                }
+
+                Toast.makeText(
+                        activity,
+                        "Açılan dosya: " + oge.getName(),
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                dialog.dismiss();
+            });
+
+            liste.addView(satir);
         }
     }
 
@@ -221,26 +224,18 @@ public final class DosyaAgaciEkrani {
     ) {
 
         TextView satir =
-                temelSatirOlustur(
-                        seviye
-                );
+                temelSatirOlustur(seviye);
 
         satir.setText(
-                "📁 "
+                "▸ "
                         + goreliYolGetir(
                                 kokKlasor,
                                 klasor
                         )
         );
 
-        satir.setTextColor(
-                Color.rgb(15, 23, 42)
-        );
-
-        satir.setTypeface(
-                satir.getTypeface(),
-                android.graphics.Typeface.BOLD
-        );
+        satir.setTextColor(Color.rgb(15, 23, 42));
+        satir.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
 
         return satir;
     }
@@ -255,9 +250,7 @@ public final class DosyaAgaciEkrani {
     ) {
 
         TextView satir =
-                temelSatirOlustur(
-                        seviye
-                );
+                temelSatirOlustur(seviye);
 
         satir.setText(
                 dosyaIkonuGetir(dosya)
@@ -268,9 +261,7 @@ public final class DosyaAgaciEkrani {
                         )
         );
 
-        satir.setTextColor(
-                Color.rgb(51, 65, 85)
-        );
+        satir.setTextColor(Color.rgb(51, 65, 85));
 
         return satir;
     }
@@ -287,6 +278,7 @@ public final class DosyaAgaciEkrani {
 
         satir.setTextSize(14.5f);
         satir.setGravity(Gravity.CENTER_VERTICAL);
+
         satir.setPadding(
                 20 + (seviye * 34),
                 18,
@@ -330,7 +322,7 @@ public final class DosyaAgaciEkrani {
     }
 
     /**
-     * Dosya türüne göre ikon üretir.
+     * Dosya türüne göre ikon metni üretir.
      */
     private String dosyaIkonuGetir(
             File dosya
@@ -340,22 +332,22 @@ public final class DosyaAgaciEkrani {
                 dosya.getName().toLowerCase();
 
         if (ad.endsWith(".xml")) {
-            return "🧩";
+            return "XML";
         }
 
         if (ad.endsWith(".java")) {
-            return "☕";
+            return "JAVA";
         }
 
         if (ad.endsWith(".kt")) {
-            return "🟣";
+            return "KT";
         }
 
         if (ad.endsWith(".json")) {
-            return "{}";
+            return "JSON";
         }
 
-        return "📄";
+        return "FILE";
     }
 
     /**
@@ -389,4 +381,4 @@ public final class DosyaAgaciEkrani {
 
         return sonuc;
     }
-                }
+            }
