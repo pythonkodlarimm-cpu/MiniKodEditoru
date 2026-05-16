@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -24,6 +25,8 @@ import org.fy.kodeditoru.log.LogYoneticisi;
 import org.fy.kodeditoru.preview.XmlOnizlemeYoneticisi;
 import org.fy.kodeditoru.proje.DosyaModeli;
 import org.fy.kodeditoru.proje.ProjeModeli;
+import org.fy.kodeditoru.runtime.RuntimeEkranActivity;
+import org.fy.kodeditoru.runtime.RuntimeVeriDeposu;
 
 import java.io.IOException;
 import java.util.List;
@@ -40,7 +43,7 @@ import java.util.List;
  * - proje dosya servisini UI aksiyonlarına bağlar.
  * - yeni dosya seçim penceresini açar.
  * - proje bilgi penceresini açar.
- * - çalıştır önizlemesini başlatır.
+ * - runtime test ekranını başlatır.
  * - editör kopyala/yapıştır/temizle araçlarını yönetir.
  * - kullanıcı aksiyonlarını Android/data log dosyasına yazar.
  *
@@ -434,29 +437,69 @@ public final class AnaEkranKurucu {
     }
 
     /**
-     * Görsel çalıştırma davranışını başlatır.
+     * Runtime ekranını başlatır.
      */
     private void calistir() {
 
         String icerik = editorYoneticisi.icerikGetir();
 
         if (icerik.trim().isEmpty()) {
-            mesajGoster("Çalıştırmak için kod yaz.");
+            mesajGoster("Çalıştırmak için XML kodu yaz.");
             logYaz("Çalıştır iptal: içerik boş.");
             return;
         }
 
-        if (aktifDosya != null && aktifDosya.isXml()) {
-            xmlOnizlemeYoneticisi.onizlemeGuncelle(icerik);
-            durumRozeti.setText("Çalışıyor");
-            mesajGoster("Arayüz görsel olarak çalıştırıldı.");
-            logYaz("XML görsel çalışma başlatıldı.");
+        if (aktifDosya == null || !aktifDosya.isXml()) {
+            durumRozeti.setText("Hazır değil");
+            mesajGoster("Çalıştır ekranı şu an XML dosyaları için aktif.");
+            logYaz("Çalıştır iptal: aktif dosya XML değil.");
             return;
         }
 
-        durumRozeti.setText("Hazır değil");
-        mesajGoster("Şu an görsel çalıştırma XML dosyaları için aktif.");
-        logYaz("Çalıştır iptal: aktif dosya XML değil.");
+        String javaIcerik = aktifJavaIcerigiGetir();
+
+        RuntimeVeriDeposu.veriAyarla(
+                icerik,
+                javaIcerik,
+                aktifDosya.getAd()
+        );
+
+        Intent intent =
+                new Intent(
+                        activity,
+                        RuntimeEkranActivity.class
+                );
+
+        activity.startActivity(intent);
+
+        durumRozeti.setText("Çalışıyor");
+        logYaz("Runtime ekranı başlatıldı: " + aktifDosya.getAd());
+    }
+
+    /**
+     * Aktif projedeki ilk Java dosyasının içeriğini döndürür.
+     */
+    private String aktifJavaIcerigiGetir() {
+
+        if (aktifProje == null) {
+            return "";
+        }
+
+        for (DosyaModeli dosya : aktifProje.getDosyalar()) {
+
+            if (!dosya.isJava()) {
+                continue;
+            }
+
+            try {
+                return projeDosyaServisi.dosyaOku(dosya);
+            } catch (IOException hata) {
+                logYaz("Java dosyası okunamadı: " + hata.getMessage());
+                return "";
+            }
+        }
+
+        return "";
     }
 
     /**
