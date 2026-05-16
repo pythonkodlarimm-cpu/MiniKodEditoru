@@ -26,8 +26,9 @@ import java.util.Deque;
  * Bu sınıf:
  * - basit Android XML layout metnini okur.
  * - desteklenen widgetları gerçek Android View nesnesine çevirir.
- * - iç içe LinearLayout ve ScrollView yapılarını destekler.
+ * - iç içe LinearLayout, FrameLayout ve ScrollView yapılarını destekler.
  * - TextView, Button, EditText ve ImageView destekler.
+ * - android:id değerlerini runtime davranış eşleşmesi için tag olarak saklar.
  * - android:text, android:hint, android:orientation ve temel renkleri okur.
  * - hatalı XML durumunda hata görünümü üretir.
  *
@@ -39,6 +40,9 @@ import java.util.Deque;
  * - sadece basit XML önizleme üretir.
  */
 public final class XmlOnizlemeYoneticisi {
+
+    public static final String RUNTIME_ID_TAG_ON_EKI =
+            "runtime_id:";
 
     private final Context context;
     private final FrameLayout onizlemeAlani;
@@ -114,6 +118,14 @@ public final class XmlOnizlemeYoneticisi {
     }
 
     /**
+     * Önizleme ana alanını döndürür.
+     */
+    public FrameLayout getOnizlemeAlani() {
+
+        return onizlemeAlani;
+    }
+
+    /**
      * XML metninden kök View üretir.
      */
     private View xmlViewOlustur(
@@ -139,6 +151,9 @@ public final class XmlOnizlemeYoneticisi {
         Deque<ViewGroup> parentStack =
                 new ArrayDeque<>();
 
+        Deque<Boolean> viewGroupStack =
+                new ArrayDeque<>();
+
         int eventType =
                 parser.getEventType();
 
@@ -146,16 +161,20 @@ public final class XmlOnizlemeYoneticisi {
 
             if (eventType == XmlPullParser.START_TAG) {
 
-                String tag =
-                        parser.getName();
-
                 View yeniView =
                         tagIcinViewOlustur(
                                 parser,
-                                tag
+                                parser.getName()
                         );
 
-                if (yeniView != null) {
+                if (yeniView == null) {
+                    viewGroupStack.push(false);
+                } else {
+
+                    viewIdTagUygula(
+                            parser,
+                            yeniView
+                    );
 
                     layoutParametreleriniUygula(
                             parser,
@@ -165,10 +184,18 @@ public final class XmlOnizlemeYoneticisi {
                     if (kokView == null) {
                         kokView = yeniView;
                     } else if (!parentStack.isEmpty()) {
-                        parentStack.peek().addView(yeniView);
+                        cocukViewEkle(
+                                parentStack.peek(),
+                                yeniView
+                        );
                     }
 
-                    if (yeniView instanceof ViewGroup) {
+                    boolean viewGroupMu =
+                            yeniView instanceof ViewGroup;
+
+                    viewGroupStack.push(viewGroupMu);
+
+                    if (viewGroupMu) {
                         parentStack.push(
                                 (ViewGroup) yeniView
                         );
@@ -177,7 +204,10 @@ public final class XmlOnizlemeYoneticisi {
 
             } else if (eventType == XmlPullParser.END_TAG) {
 
-                if (!parentStack.isEmpty()) {
+                if (!viewGroupStack.isEmpty()
+                        && viewGroupStack.pop()
+                        && !parentStack.isEmpty()) {
+
                     parentStack.pop();
                 }
             }
@@ -410,6 +440,111 @@ public final class XmlOnizlemeYoneticisi {
     }
 
     /**
+     * View id bilgisini runtime tag olarak uygular.
+     */
+    private void viewIdTagUygula(
+            XmlPullParser parser,
+            View view
+    ) {
+
+        String id =
+                ozellikGetir(
+                        parser,
+                        "id"
+                );
+
+        String temizId =
+                idTemizle(
+                        id
+                );
+
+        if (!temizId.isEmpty()) {
+            view.setTag(
+                    RUNTIME_ID_TAG_ON_EKI
+                            + temizId
+            );
+        }
+    }
+
+    /**
+     * Parent türüne göre child View ekler.
+     */
+    private void cocukViewEkle(
+            ViewGroup parent,
+            View child
+    ) {
+
+        if (parent instanceof LinearLayout) {
+
+            parent.addView(
+                    child,
+                    linearLayoutParamsUret(child)
+            );
+
+            return;
+        }
+
+        if (parent instanceof FrameLayout) {
+
+            parent.addView(
+                    child,
+                    frameLayoutParamsUret(child)
+            );
+
+            return;
+        }
+
+        if (parent instanceof ScrollView) {
+
+            if (parent.getChildCount() == 0) {
+                parent.addView(
+                        child,
+                        new ScrollView.LayoutParams(
+                                child.getLayoutParams().width,
+                                child.getLayoutParams().height
+                        )
+                );
+            }
+
+            return;
+        }
+
+        parent.addView(child);
+    }
+
+    /**
+     * LinearLayout child parametresi üretir.
+     */
+    private LinearLayout.LayoutParams linearLayoutParamsUret(
+            View view
+    ) {
+
+        ViewGroup.LayoutParams params =
+                view.getLayoutParams();
+
+        return new LinearLayout.LayoutParams(
+                params.width,
+                params.height
+        );
+    }
+
+    /**
+     * FrameLayout child parametresi üretir.
+     */
+    private FrameLayout.LayoutParams frameLayoutParamsUret(
+            View view
+    ) {
+
+        ViewGroup.LayoutParams params =
+                view.getLayoutParams();
+
+        return new FrameLayout.LayoutParams(
+                params.width,
+                params.height
+        );
+    }
+
+    /**
      * View layout parametrelerini uygular.
      */
     private void layoutParametreleriniUygula(
@@ -638,6 +773,23 @@ public final class XmlOnizlemeYoneticisi {
     }
 
     /**
+     * Android id değerinden sade id adını çıkarır.
+     */
+    private String idTemizle(
+            String idDegeri
+    ) {
+
+        if (idDegeri == null || idDegeri.trim().isEmpty()) {
+            return "";
+        }
+
+        return idDegeri
+                .trim()
+                .replace("@+id/", "")
+                .replace("@id/", "");
+    }
+
+    /**
      * Metinden sayı ayıklar.
      */
     private int sayiAyikla(
@@ -720,4 +872,4 @@ public final class XmlOnizlemeYoneticisi {
                 )
         );
     }
-            }
+                                 }
