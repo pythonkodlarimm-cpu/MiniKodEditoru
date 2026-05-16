@@ -5,7 +5,9 @@ import android.content.Context;
 import org.fy.kodeditoru.proje.DosyaModeli;
 import org.fy.kodeditoru.proje.ProjeModeli;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -13,11 +15,12 @@ import java.io.IOException;
  * Merkezi proje dosya yönetim servisi.
  *
  * Bu sınıf:
- * - proje klasörü oluşturur.
- * - Java/XML/Kotlin dosyaları üretir.
+ * - Android/data uygulama alanında proje klasörü oluşturur.
+ * - Java, XML ve Kotlin dosyaları üretir.
  * - proje modeline dosya ekler.
- * - örnek başlangıç dosyaları oluşturur.
- * - aktif çalışma klasörünü yönetir.
+ * - dosya içeriği okur.
+ * - dosya içeriği kaydeder.
+ * - örnek başlangıç proje dosyaları oluşturur.
  *
  * Kural:
  * - UI üretmez.
@@ -29,12 +32,12 @@ import java.io.IOException;
  */
 public final class ProjeDosyaServisi {
 
-    private final Context context;
+    private static final String PROJELER_KLASORU_ADI = "projeler";
 
     private final File projelerKlasoru;
 
     /**
-     * Servis oluşturur.
+     * Proje dosya servisi oluşturur.
      */
     public ProjeDosyaServisi(
             Context context
@@ -46,17 +49,22 @@ public final class ProjeDosyaServisi {
             );
         }
 
-        this.context = context;
+        File anaKlasor =
+                context.getExternalFilesDir(null);
+
+        if (anaKlasor == null) {
+            throw new IllegalStateException(
+                    "Android external files alanı alınamadı."
+            );
+        }
 
         projelerKlasoru =
                 new File(
-                        context.getExternalFilesDir(null),
-                        "projeler"
+                        anaKlasor,
+                        PROJELER_KLASORU_ADI
                 );
 
-        if (!projelerKlasoru.exists()) {
-            projelerKlasoru.mkdirs();
-        }
+        klasorOlustur(projelerKlasoru);
     }
 
     /**
@@ -67,9 +75,7 @@ public final class ProjeDosyaServisi {
     ) throws IOException {
 
         String temizAd =
-                projeAdi
-                        .trim()
-                        .replace(" ", "_");
+                projeAdiTemizle(projeAdi);
 
         File projeKlasoru =
                 new File(
@@ -77,9 +83,7 @@ public final class ProjeDosyaServisi {
                         temizAd
                 );
 
-        if (!projeKlasoru.exists()) {
-            projeKlasoru.mkdirs();
-        }
+        klasorOlustur(projeKlasoru);
 
         ProjeModeli proje =
                 new ProjeModeli(
@@ -89,6 +93,175 @@ public final class ProjeDosyaServisi {
         ornekDosyalariOlustur(proje);
 
         return proje;
+    }
+
+    /**
+     * Proje klasörünü model olarak açar.
+     */
+    public ProjeModeli projeAc(
+            String projeAdi
+    ) {
+
+        String temizAd =
+                projeAdiTemizle(projeAdi);
+
+        File projeKlasoru =
+                new File(
+                        projelerKlasoru,
+                        temizAd
+                );
+
+        klasorOlustur(projeKlasoru);
+
+        ProjeModeli proje =
+                new ProjeModeli(
+                        projeKlasoru
+                );
+
+        dosyalariModeleYukle(
+                proje,
+                projeKlasoru
+        );
+
+        return proje;
+    }
+
+    /**
+     * Java dosyası oluşturur.
+     */
+    public DosyaModeli javaDosyasiOlustur(
+            ProjeModeli proje,
+            String dosyaAdi
+    ) throws IOException {
+
+        return dosyaOlustur(
+                proje,
+                dosyaAdi,
+                DosyaModeli.TUR_JAVA,
+                varsayilanJavaKodu()
+        );
+    }
+
+    /**
+     * XML dosyası oluşturur.
+     */
+    public DosyaModeli xmlDosyasiOlustur(
+            ProjeModeli proje,
+            String dosyaAdi
+    ) throws IOException {
+
+        return dosyaOlustur(
+                proje,
+                dosyaAdi,
+                DosyaModeli.TUR_XML,
+                varsayilanXmlKodu()
+        );
+    }
+
+    /**
+     * Kotlin dosyası oluşturur.
+     */
+    public DosyaModeli kotlinDosyasiOlustur(
+            ProjeModeli proje,
+            String dosyaAdi
+    ) throws IOException {
+
+        return dosyaOlustur(
+                proje,
+                dosyaAdi,
+                DosyaModeli.TUR_KOTLIN,
+                varsayilanKotlinKodu()
+        );
+    }
+
+    /**
+     * Dosya içeriğini kaydeder.
+     */
+    public void dosyaKaydet(
+            DosyaModeli dosya,
+            String icerik
+    ) throws IOException {
+
+        if (dosya == null) {
+            throw new IllegalArgumentException(
+                    "Dosya modeli null olamaz."
+            );
+        }
+
+        File hedefDosya =
+                dosya.getDosya();
+
+        File ustKlasor =
+                hedefDosya.getParentFile();
+
+        if (ustKlasor != null) {
+            klasorOlustur(ustKlasor);
+        }
+
+        try (
+                FileWriter writer =
+                        new FileWriter(
+                                hedefDosya,
+                                false
+                        )
+        ) {
+
+            writer.write(
+                    icerik == null ? "" : icerik
+            );
+
+            writer.flush();
+        }
+    }
+
+    /**
+     * Dosya içeriğini okur.
+     */
+    public String dosyaOku(
+            DosyaModeli dosya
+    ) throws IOException {
+
+        if (dosya == null) {
+            throw new IllegalArgumentException(
+                    "Dosya modeli null olamaz."
+            );
+        }
+
+        File hedefDosya =
+                dosya.getDosya();
+
+        if (!hedefDosya.exists()) {
+            return "";
+        }
+
+        StringBuilder builder =
+                new StringBuilder();
+
+        try (
+                BufferedReader reader =
+                        new BufferedReader(
+                                new FileReader(
+                                        hedefDosya
+                                )
+                        )
+        ) {
+
+            String satir;
+
+            while ((satir = reader.readLine()) != null) {
+                builder.append(satir);
+                builder.append('\n');
+            }
+        }
+
+        return builder.toString();
+    }
+
+    /**
+     * Projeler ana klasörünü döndürür.
+     */
+    public File getProjelerKlasoru() {
+        return projelerKlasoru;
     }
 
     /**
@@ -122,63 +295,31 @@ public final class ProjeDosyaServisi {
     }
 
     /**
-     * Java dosyası oluşturur.
-     */
-    public DosyaModeli javaDosyasiOlustur(
-            ProjeModeli proje,
-            String dosyaAdi
-    ) {
-
-        return dosyaOlustur(
-                proje,
-                dosyaAdi,
-                DosyaModeli.TUR_JAVA
-        );
-    }
-
-    /**
-     * XML dosyası oluşturur.
-     */
-    public DosyaModeli xmlDosyasiOlustur(
-            ProjeModeli proje,
-            String dosyaAdi
-    ) {
-
-        return dosyaOlustur(
-                proje,
-                dosyaAdi,
-                DosyaModeli.TUR_XML
-        );
-    }
-
-    /**
-     * Kotlin dosyası oluşturur.
-     */
-    public DosyaModeli kotlinDosyasiOlustur(
-            ProjeModeli proje,
-            String dosyaAdi
-    ) {
-
-        return dosyaOlustur(
-                proje,
-                dosyaAdi,
-                DosyaModeli.TUR_KOTLIN
-        );
-    }
-
-    /**
      * Merkezi dosya oluşturma işlemi.
      */
     private DosyaModeli dosyaOlustur(
             ProjeModeli proje,
             String dosyaAdi,
-            String tur
-    ) {
+            String tur,
+            String varsayilanIcerik
+    ) throws IOException {
+
+        if (proje == null) {
+            throw new IllegalArgumentException(
+                    "Proje modeli null olamaz."
+            );
+        }
+
+        String temizDosyaAdi =
+                dosyaAdiTemizle(
+                        dosyaAdi,
+                        tur
+                );
 
         File dosya =
                 new File(
                         proje.getProjeKlasoru(),
-                        dosyaAdi
+                        temizDosyaAdi
                 );
 
         DosyaModeli model =
@@ -187,27 +328,128 @@ public final class ProjeDosyaServisi {
                         tur
                 );
 
+        if (!dosya.exists()) {
+            dosyaKaydet(
+                    model,
+                    varsayilanIcerik
+            );
+        }
+
         proje.dosyaEkle(model);
 
         return model;
     }
 
     /**
-     * Dosya içeriğini kaydeder.
+     * Projedeki dosyaları modele yükler.
      */
-    public void dosyaKaydet(
-            DosyaModeli dosya,
-            String icerik
-    ) throws IOException {
+    private void dosyalariModeleYukle(
+            ProjeModeli proje,
+            File klasor
+    ) {
 
-        FileWriter writer =
-                new FileWriter(
-                        dosya.getDosya()
+        File[] dosyalar =
+                klasor.listFiles();
+
+        if (dosyalar == null) {
+            return;
+        }
+
+        for (File dosya : dosyalar) {
+
+            if (dosya.isDirectory()) {
+                dosyalariModeleYukle(
+                        proje,
+                        dosya
                 );
+                continue;
+            }
 
-        writer.write(icerik);
-        writer.flush();
-        writer.close();
+            proje.dosyaEkle(
+                    new DosyaModeli(
+                            dosya
+                    )
+            );
+        }
+    }
+
+    /**
+     * Klasör yoksa oluşturur.
+     */
+    private void klasorOlustur(
+            File klasor
+    ) {
+
+        if (klasor == null) {
+            return;
+        }
+
+        if (!klasor.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            klasor.mkdirs();
+        }
+    }
+
+    /**
+     * Proje adını güvenli hale getirir.
+     */
+    private String projeAdiTemizle(
+            String projeAdi
+    ) {
+
+        if (projeAdi == null || projeAdi.trim().isEmpty()) {
+            return "YeniProje";
+        }
+
+        return projeAdi
+                .trim()
+                .replaceAll("[^a-zA-Z0-9_\\-]", "_");
+    }
+
+    /**
+     * Dosya adını güvenli hale getirir.
+     */
+    private String dosyaAdiTemizle(
+            String dosyaAdi,
+            String tur
+    ) {
+
+        String temizAd =
+                dosyaAdi == null ? "" : dosyaAdi.trim();
+
+        if (temizAd.isEmpty()) {
+
+            if (DosyaModeli.TUR_XML.equals(tur)) {
+                temizAd = "activity_main.xml";
+            } else if (DosyaModeli.TUR_KOTLIN.equals(tur)) {
+                temizAd = "MainActivity.kt";
+            } else {
+                temizAd = "MainActivity.java";
+            }
+        }
+
+        temizAd =
+                temizAd.replaceAll("[/\\\\:*?\"<>|]", "_");
+
+        if (DosyaModeli.TUR_XML.equals(tur)
+                && !temizAd.toLowerCase().endsWith(".xml")) {
+
+            temizAd = temizAd + ".xml";
+        }
+
+        if (DosyaModeli.TUR_JAVA.equals(tur)
+                && !temizAd.toLowerCase().endsWith(".java")) {
+
+            temizAd = temizAd + ".java";
+        }
+
+        if (DosyaModeli.TUR_KOTLIN.equals(tur)
+                && !temizAd.toLowerCase().endsWith(".kt")) {
+
+            temizAd = temizAd + ".kt";
+        }
+
+        return temizAd;
     }
 
     /**
@@ -224,21 +466,42 @@ public final class ProjeDosyaServisi {
     }
 
     /**
+     * Varsayılan Kotlin kodu üretir.
+     */
+    private String varsayilanKotlinKodu() {
+
+        return ""
+                + "package org.fy.test\n\n"
+                + "class MainActivity {\n\n"
+                + "    fun baslat() {\n"
+                + "    }\n"
+                + "}\n";
+    }
+
+    /**
      * Varsayılan XML kodu üretir.
      */
     private String varsayilanXmlKodu() {
 
         return ""
-                + "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                + "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n\n"
                 + "<LinearLayout\n"
                 + "    xmlns:android=\"http://schemas.android.com/apk/res/android\"\n"
                 + "    android:layout_width=\"match_parent\"\n"
                 + "    android:layout_height=\"match_parent\"\n"
-                + "    android:orientation=\"vertical\">\n\n"
+                + "    android:orientation=\"vertical\"\n"
+                + "    android:padding=\"16dp\"\n"
+                + "    android:background=\"#101820\">\n\n"
                 + "    <TextView\n"
                 + "        android:layout_width=\"wrap_content\"\n"
                 + "        android:layout_height=\"wrap_content\"\n"
-                + "        android:text=\"Mini Kod Editörü\"/>\n\n"
+                + "        android:text=\"Mini Kod Editörü\"\n"
+                + "        android:textSize=\"24sp\"\n"
+                + "        android:textColor=\"#FFFFFF\" />\n\n"
+                + "    <Button\n"
+                + "        android:layout_width=\"match_parent\"\n"
+                + "        android:layout_height=\"wrap_content\"\n"
+                + "        android:text=\"Buton Test\" />\n\n"
                 + "</LinearLayout>\n";
     }
-      }
+            }
