@@ -27,7 +27,8 @@ public final class JavaDavranisParser {
 
     private static final Pattern VIEW_ID_PATTERN =
             Pattern.compile(
-                    "(\\w+)\\s*=\\s*findViewById\\s*\\(\\s*R\\.id\\.(\\w+)\\s*\\)"
+                    "(?:[A-Za-z0-9_<>]+\\s+)?(\\w+)\\s*=\\s*(?:\\([^\\)]*\\)\\s*)?findViewById\\s*\\(\\s*R\\.id\\.(\\w+)\\s*\\)",
+                    Pattern.MULTILINE
             );
 
     private static final Pattern CLICK_PATTERN =
@@ -38,7 +39,7 @@ public final class JavaDavranisParser {
 
     private static final Pattern TOAST_PATTERN =
             Pattern.compile(
-                    "Toast\\.makeText\\s*\\([^,]+,\\s*\"([^\"]*)\"",
+                    "Toast\\.makeText\\s*\\([^,]+,\\s*\"([^\"]*)\"\\s*,",
                     Pattern.MULTILINE
             );
 
@@ -69,10 +70,14 @@ public final class JavaDavranisParser {
         }
 
         Map<String, String> degiskenIdHaritasi =
-                viewIdHaritasiCikar(javaKodu);
+                viewIdHaritasiCikar(
+                        javaKodu
+                );
 
         Matcher clickMatcher =
-                CLICK_PATTERN.matcher(javaKodu);
+                CLICK_PATTERN.matcher(
+                        javaKodu
+                );
 
         while (clickMatcher.find()) {
 
@@ -83,7 +88,9 @@ public final class JavaDavranisParser {
                     clickMatcher.group(2);
 
             String viewId =
-                    degiskenIdHaritasi.get(degiskenAdi);
+                    degiskenIdHaritasi.get(
+                            degiskenAdi
+                    );
 
             if (viewId == null || viewId.trim().isEmpty()) {
                 continue;
@@ -116,7 +123,9 @@ public final class JavaDavranisParser {
                 new HashMap<>();
 
         Matcher matcher =
-                VIEW_ID_PATTERN.matcher(javaKodu);
+                VIEW_ID_PATTERN.matcher(
+                        javaKodu
+                );
 
         while (matcher.find()) {
 
@@ -144,7 +153,9 @@ public final class JavaDavranisParser {
                 );
 
         Matcher toastMatcher =
-                TOAST_PATTERN.matcher(govde);
+                TOAST_PATTERN.matcher(
+                        govde
+                );
 
         if (toastMatcher.find()) {
             model.toastMesajiAyarla(
@@ -153,7 +164,9 @@ public final class JavaDavranisParser {
         }
 
         Matcher setTextMatcher =
-                SET_TEXT_PATTERN.matcher(govde);
+                SET_TEXT_PATTERN.matcher(
+                        govde
+                );
 
         while (setTextMatcher.find()) {
 
@@ -161,7 +174,9 @@ public final class JavaDavranisParser {
                     setTextMatcher.group(1);
 
             String hedefId =
-                    degiskenIdHaritasi.get(hedefDegisken);
+                    degiskenIdHaritasi.get(
+                            hedefDegisken
+                    );
 
             if (hedefId == null || hedefId.trim().isEmpty()) {
                 continue;
@@ -175,4 +190,4 @@ public final class JavaDavranisParser {
 
         return model;
     }
-    }
+}
