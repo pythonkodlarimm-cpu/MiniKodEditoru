@@ -307,7 +307,24 @@ public final class AnaEkranKurucu {
                 );
 
         ekran.ac(
-                anaEkranAksiyonlari::projeSec
+                proje -> {
+                    anaEkranAksiyonlari.projeSec(proje);
+                    dosyaAgaciEkraniAc();
+                }
+        );
+    }
+
+    /**
+     * Dosya ağacı ekranını açar.
+     */
+    private void dosyaAgaciEkraniAc() {
+
+        DosyaAgaciEkrani ekran =
+                new DosyaAgaciEkrani(activity);
+
+        ekran.ac(
+                anaEkranAksiyonlari.getAktifProje(),
+                anaEkranAksiyonlari::dosyaSec
         );
     }
 
@@ -436,4 +453,4 @@ public final class AnaEkranKurucu {
     public AnaEkranAksiyonlari getAnaEkranAksiyonlari() {
         return anaEkranAksiyonlari;
     }
-            }
+                                           }
